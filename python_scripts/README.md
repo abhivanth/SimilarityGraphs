@@ -15,7 +15,7 @@ Each record in the dataset consists of the following attributes:
 
 There are a total of 42 news categories in the dataset.
 
-source : Misra, Rishabh. "News Category Dataset." arXiv preprint arXiv:2209.11429 (2022).
+Source : Misra, Rishabh. "News Category Dataset.". [Misra 2022](https://www.researchgate.net/publication/363843926_News_Category_Dataset)
 
 ## Multidomain sentiment analysis dataset
 
@@ -23,5 +23,5 @@ This dataset consists of 8000 product reviews obtained from amazon.com where the
 There are 1000 positive reviews and 1000 negative reviews for each of the four product domains. The dataset is processed into
 two based on sentiment and based on stars.
 
-source : John Blitzer, Mark Dredze, Fernando Pereira. Biographies, Bollywood, Boom-boxes and Blenders: Domain Adaptation for Sentiment Classification. Association of Computational Linguistics (ACL), 2007.
+Source : John Blitzer, Mark Dredze, Fernando Pereira. Biographies, Bollywood, Boom-boxes and Blenders: Domain Adaptation for Sentiment Classification. Association of Computational Linguistics (ACL), 2007.[Blitzer 2007](https://www.cs.jhu.edu/~mdredze/publications/sentiment_acl07.pdf)
 
