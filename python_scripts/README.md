@@ -23,4 +23,5 @@ This dataset consists of 8000 product reviews obtained from amazon.com where the
 There are 1000 positive reviews and 1000 negative reviews for each of the four product domains. The dataset is processed into
 two based on sentiment and based on stars.
 
+source : John Blitzer, Mark Dredze, Fernando Pereira. Biographies, Bollywood, Boom-boxes and Blenders: Domain Adaptation for Sentiment Classification. Association of Computational Linguistics (ACL), 2007.
 
