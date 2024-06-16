@@ -1,5 +1,5 @@
 # Datasets
-### Here are the text datasets chosen for initial analysis
+text datasets chosen for initial analysis
 ## News Category DataSet : 
 
 This dataset contains around 210k news headlines from 2012 to 2022 from HuffPost. This is one of the biggest news datasets and can serve as a benchmark for a variety of computational linguistic tasks. HuffPost stopped maintaining an extensive archive of news articles sometime after this dataset was first collected in 2018, so it is not possible to collect such a dataset in the present day. Due to changes in the website, there are about 200k headlines between 2012 and May 2018 and 10k headlines between May 2018 and 2022.
