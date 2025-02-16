@@ -1,5 +1,4 @@
 import pandas as pd
-import json
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from python_scripts.PrepareAmazonDataSet import load_amazon_data
