@@ -8,21 +8,20 @@ model = BertModel.from_pretrained("colbert-ir/colbertv2.0")
 
 ds = load_dataset("allenai/dolma-pes2o-cc-pd", split="train", streaming=True)
 
-
-def tokenize_batch(batch):
-    return tokenizer(batch['text'], padding=True, truncation=True, max_length=512)
-
-
-streamed_ds = ds.map(tokenize_batch, batched=True, batch_size=500)
+streamed_ds = ds.map(batched=True, batch_size=500)
 embeddings_list = []
-for count, example in enumerate(streamed_ds, 1):
+for count, batch in enumerate(streamed_ds, 1):
 
-    inputs = tokenizer(example['text'], return_tensors="pt", padding=True, truncation=True)
+    inputs = tokenizer(batch['text'], return_tensors="pt", padding=True, truncation=True)
+    batch_id = batch['id']
     with torch.no_grad():
         outputs = model(**inputs)
     embeddings = outputs.last_hidden_state.mean(dim=1)
-    embeddings_list.append(embeddings.cpu().numpy())
+    embeddings_list.append(np.column_stack((embeddings.cpu().numpy(), batch_id)))
     if count >= 500:
         break
 
-print(np.array(embeddings_list).shape)
+final_embeddings = np.vstack(embeddings_list)
+print(final_embeddings.shape)
+
+np.savetxt("s2orc_colbert_embeddings.csv", final_embeddings, delimiter=",")
