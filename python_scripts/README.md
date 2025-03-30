@@ -3,7 +3,7 @@
 ## Overview
 This repository focuses on vectorizing citation datasets using various text representation methods to analyze content-based similarity. The datasets used include:
 
-### 1. PMC Open Access (Commercial and Non-Commercial)
+### 1. PMC Open Access
 The **PubMed Central (PMC) Open Access** dataset contains full-text biomedical and life sciences articles. It is divided into:
 - **Commercial Subset:** Articles available for reuse, including commercial applications.
 - **Non-Commercial Subset:** Articles available only for non-commercial purposes.
