@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from python_scripts.text_vectorisation_models import Tfidf_vectorizer, SPLADE_vectorizer, Bert_vectorizer
+from python_scripts.text_vectorisation_models import Tfidf_vectorizer, SPLADE_vectorizer, Bert_vectorizer, \
+    DeepSeek_Vectoriser
 from python_scripts.Save_Stream_Data import save_stream_to_parquet
 
 # load dataset with desired number of records
@@ -24,3 +25,7 @@ np.savetxt("text_embeddings/s2orc_embeddings_colbert.csv", final_embeddings_colb
 final_embeddings_splade = SPLADE_vectorizer.vectorize_data(df_S2ORC, 'text', 'id')
 print(final_embeddings_splade.shape)
 np.savetxt("text_embeddings/s2orc_embeddings_splade.csv", final_embeddings_colbert, delimiter=",")
+
+# DeepSeek Embeddings
+final_embeddings_deepseek = DeepSeek_Vectoriser.vectorize_dataframe(df_S2ORC, text_column="text", id_column="id", model_type="qwen", model_variant="1.5b")
+print(final_embeddings_deepseek.shape)
