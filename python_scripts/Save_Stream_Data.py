@@ -6,9 +6,9 @@ from datasets import load_dataset
 
 def save_stream_to_parquet(dataset_name, num_records, output_dir="data/", name=None):
     if name:
-        dataset_stream = load_dataset(dataset_name, split="train", streaming=True, name=name)
+        dataset_stream = load_dataset(dataset_name, split="train", streaming=True, name=name,trust_remote_code=True)
     else:
-        dataset_stream = load_dataset(dataset_name, split="train", streaming=True)
+        dataset_stream = load_dataset(dataset_name, split="train", streaming=True,trust_remote_code=True)
 
     dataset_name = dataset_name.replace("/", "_").replace(" ", "_")
     output_file = os.path.join(output_dir, f"{dataset_name}_{num_records}_records.parquet")

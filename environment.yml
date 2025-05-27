@@ -1,0 +1,21 @@
+name: thesis
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - pytorch=2.5.1
+  - scikit-learn
+  - flask
+  - datasets
+  - tqdm
+  - pip
+  - pip:
+    - colbert-ai
+    - faiss-cpu
+    - flask
+    - gitpython
+    - transformers

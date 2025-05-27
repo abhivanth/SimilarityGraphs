@@ -10,5 +10,5 @@ def vectorize(df, text_column, id_column, name):
                                index=df[text_column].index)
     s2orc_tfidf['id'] = df[id_column]
     print(s2orc_tfidf.shape)
-    s2orc_tfidf.to_csv(f'text_embeddings/{name}_embeddings_tfidf.csv', index=False)
+    s2orc_tfidf.to_csv(f'python_scripts/text_embeddings/{name}_embeddings_tfidf.csv', index=False)
 

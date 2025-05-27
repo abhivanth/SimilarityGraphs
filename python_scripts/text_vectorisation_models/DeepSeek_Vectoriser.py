@@ -60,6 +60,9 @@ def embed_text(text, tokenizer, model):
     )
     if torch.cuda.is_available():
         inputs = {k: v.to("cuda") for k, v in inputs.items()}
+        print("Inputs moved to CUDA (GPU)")
+    else:
+        print("CUDA not available. Inputs remain on CPU.")
 
     with torch.no_grad():
         output = model(**inputs)
