@@ -108,8 +108,9 @@ class CitationNetworkParser:
         
         # Add node attributes
         for node in self.graph.nodes():
-            if node in self.paper_metadata:
-                self.graph.nodes[node].update(self.paper_metadata[node])
+            full_node_id = "hep-th/"+node
+            if full_node_id in self.paper_metadata:
+                self.graph.nodes[node].update(self.paper_metadata[full_node_id])
             else:
                 self.graph.nodes[node]['paper_id'] = node
                 self.graph.nodes[node]['title'] = f"Paper {node}"
@@ -129,8 +130,8 @@ class CitationNetworkParser:
             nodes_data.append({
                 'paper_id': node,
                 'title': self.graph.nodes[node].get('title', ''),
-                'authors': self.graph.nodes[node].get('authors', ''),
-                'abstract': self.graph.nodes[node].get('abstract', '')
+                # 'authors': self.graph.nodes[node].get('authors', ''),
+                # 'abstract': self.graph.nodes[node].get('abstract', '')
             })
         
         nodes_df = pd.DataFrame(nodes_data)
