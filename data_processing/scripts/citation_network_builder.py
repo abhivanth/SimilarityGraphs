@@ -10,7 +10,7 @@ from pathlib import Path
 class CitationNetworkParser:
     """Parse cit-HepTh dataset and export citation network."""
     
-    def __init__(self, data_dir: str = "data/raw"):
+    def __init__(self, data_dir: str = "../data/raw"):
         self.data_dir = Path(data_dir)
         self.citations_file = self.data_dir / "cit-HepTh.txt.gz"
         self.abstracts_file = self.data_dir / "cit-HepTh-abstracts.tar.gz"
@@ -70,8 +70,7 @@ class CitationNetworkParser:
         
         print(f"Extracted metadata for {len(self.paper_metadata)} papers")
     
-    @staticmethod
-    def _extract_metadata(content: str) -> Dict[str, str]:
+    def _extract_metadata(self, content: str) -> Dict[str, str]:
         """Extract metadata fields from paper abstract file."""
         metadata = {}
         
@@ -109,18 +108,24 @@ class CitationNetworkParser:
         
         # Add node attributes
         for node in self.graph.nodes():
-            full_node_id = "hep-th/"+node
-            if full_node_id in self.paper_metadata:
-                self.graph.nodes[node].update(self.paper_metadata[full_node_id])
+            # Check both with and without 'hep-th/' prefix
+            if node in self.paper_metadata:
+                self.graph.nodes[node].update(self.paper_metadata[node])
             else:
-                self.graph.nodes[node]['paper_id'] = node
-                self.graph.nodes[node]['title'] = f"Paper {node}"
-                self.graph.nodes[node]['authors'] = ''
-                self.graph.nodes[node]['abstract'] = ''
+                # Try with prefix
+                full_node_id = f"hep-th/{node}"
+                if full_node_id in self.paper_metadata:
+                    self.graph.nodes[node].update(self.paper_metadata[full_node_id])
+                else:
+                    # Default values if no metadata found
+                    self.graph.nodes[node]['paper_id'] = node
+                    self.graph.nodes[node]['title'] = f"Paper {node}"
+                    self.graph.nodes[node]['authors'] = ''
+                    self.graph.nodes[node]['abstract'] = ''
         
         print(f"Graph built with {self.graph.number_of_nodes()} nodes and {self.graph.number_of_edges()} edges")
     
-    def export_csv(self, output_dir: str = "data/processed") -> Tuple[Path, Path]:
+    def export_csv(self, output_dir: str = "../data/processed") -> Tuple[Path, Path]:
         """Export nodes and edges as CSV files."""
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -130,7 +135,7 @@ class CitationNetworkParser:
         for node in self.graph.nodes():
             nodes_data.append({
                 'paper_id': node,
-                'title': self.graph.nodes[node].get('title', ''),
+                'title': self.graph.nodes[node].get('title', '')
                 # 'authors': self.graph.nodes[node].get('authors', ''),
                 # 'abstract': self.graph.nodes[node].get('abstract', '')
             })
@@ -150,7 +155,7 @@ class CitationNetworkParser:
         
         return nodes_csv, edges_csv
     
-    def export_graphml(self, output_file: str = "data_processing/data/processed/citation_network.graphml") -> Path:
+    def export_graphml(self, output_file: str = "../data/processed/citation_network.graphml") -> Path:
         """Export graph in GraphML format."""
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
