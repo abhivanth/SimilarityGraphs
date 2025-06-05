@@ -1,0 +1,36 @@
+{
+  "method": "embedding_spectral_clustering",
+  "graph_type": "knn-similarity",
+  "n_clusters": 8,
+  "n_papers": 27770,
+  "embedding_dim": 3072,
+  "silhouette_score": 0.2335469275712967,
+  "graph_statistics": {
+    "n_papers": 27770,
+    "embedding_dim": 3072,
+    "mean_similarity": 0.6600954532623291,
+    "std_similarity": 0.16278496384620667,
+    "min_similarity": 0.13800571858882904,
+    "max_similarity": 1.0000009536743164
+  },
+  "cluster_info": {
+    "n_clusters": 8,
+    "cluster_sizes": {
+      "0": 6553,
+      "1": 375,
+      "2": 18177,
+      "3": 1968,
+      "4": 264,
+      "5": 36,
+      "6": 194,
+      "7": 203
+    },
+    "silhouette_score": 0.2335469275712967,
+    "largest_cluster_size": 18177,
+    "smallest_cluster_size": 36,
+    "mean_cluster_size": 3471.25,
+    "std_cluster_size": 5927.815907861849
+  },
+  "embeddings_file": "../embeddings/llama_3.2_3b_embeddings.npy",
+  "timestamp": "2025-06-06T01:23:56.394889"
+}

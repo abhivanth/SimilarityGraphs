@@ -259,7 +259,6 @@ class EmbeddingGenerator:
 
 
 def main():
-    """Generate embeddings for citation network using specified model."""
     import argparse
     
     parser = argparse.ArgumentParser(description="Generate embeddings for citation network")
