@@ -1,0 +1,1001 @@
+node_id,mag_paper_id,title,class_idx
+0,9657784,evasion attacks against machine learning at test time,4
+1,39886162,how hard is computing parity with noisy communications,5
+2,116214155,on the absence of the rip in real world applications of compressed sensing and the rip in levels,28
+3,121432379,a promise theory perspective on data networks,8
+4,231147053,analysis of asymptotically optimal sampling based motion planning algorithms for lipschitz continuous dynamical systems,27
+5,1196386999,the edge group coloring problem with applications to multicast switching,34
+6,1444859417,webvrgis based city bigdata 3d visualization and analysis,6
+7,1483430697,information theoretic authentication and secrecy codes in the splitting model,4
+8,1486601621,whealth transforming telehealth services,3
+9,1495847259,nonparametric decentralized sequential detection via universal source coding,28
+10,1500126713,online learning in decentralized multiuser resource sharing problems,24
+11,1512190626,truthful secretaries with budgets,36
+12,1524631297,improving the bound on the rip constant in generalized orthogonal matching pursuit,28
+13,1525384803,a system for reflection in c,22
+14,1528301850,a bi level view of inpainting based image compression,16
+15,1537465387,distributed graph automata,33
+16,1539916885,randomness efficient rumor spreading,34
+17,1542788159,back to the past source identification in diffusion networks from partially observed cascades,26
+18,1544145018,bayesian two sample tests,24
+19,1546946208,electrical structure based pmu placement in electric power systems,19
+20,1550373401,on state dependent broadcast channels with cooperation,28
+21,1551937652,detecting simultaneous integer relations for several real vectors,14
+22,1553895888,shannon meets carnot mutual information via thermodynamics,28
+23,1555565700,on list decodability of random rank metric codes,28
+24,1556595261,dealing with run time variability in service robotics towards a dsl for non functional properties,27
+25,1561232457,a characterisation of context sensitive languages by consensus games,33
+26,1561890487,data structures for approximate range counting,34
+27,1566387761,holographic transformation for quantum factor graphs,28
+28,1573599372,rooted trees with probabilities revisited,28
+29,1578902217,time critical social mobilization,3
+30,1581827225,homomorphic encryption theory and application,4
+31,1585744708,learning transformations for clustering and classification,16
+32,1586330215,methods for integrating knowledge with the three weight optimization algorithm for hybrid cognitive processing,10
+33,1591405962,csma local area networking under dynamic altruism,8
+34,1595098738,face frontalization for alignment and recognition,16
+35,1596723206,from bounded affine types to automatic timing analysis,22
+36,1601434380,an efficient way to perform the assembly of finite element matrices in matlab and octave,0
+37,1606458877,how auto encoders could provide credit assignment in deep networks via target propagation,24
+38,1607460189,constrained parametric proposals and pooling methods for semantic segmentation in rgb d images,16
+39,1615334113,cooperative game theoretic solution concepts for top k problems,26
+40,1618900328,regulation and the integrity of spreadsheets in the information supply chain,3
+41,1623729836,reconfigurable wireless networks,8
+42,1633846131,contact representations of sparse planar graphs,20
+43,1634869392,modularity aspects of disjunctive stable models,2
+44,1650363355,replica symmetric bound for restricted isometry constant,28
+45,1657294604,pushdown abstractions of javascript,22
+46,1661863441,a notion of robustness for cyber physical systems,19
+47,1665243225,entropy rate for hidden markov chains with rare transitions,28
+48,1665669548,memristors can implement fuzzy logic,18
+49,1667633038,asymptotic capacity of wireless ad hoc networks with realistic links under a honey comb topology,28
+50,1670829281,on the performance of selection cooperation with imperfect channel estimation,28
+51,1681484497,informetric analyses of knowledge organization systems koss,38
+52,1682705844,latent topic models for hypertext,31
+53,1698782162,complete security framework for wireless sensor networks,4
+54,1717093152,neural dissimilarity indices that predict oddball detection in behaviour,28
+55,1720451657,network maps of technology fields a comparative analysis of relatedness measures,26
+56,1738519518,continuous double auction mechanism and bidding strategies in cloud computing markets,5
+57,1740018295,the abc problem for gabor systems,28
+58,1754384483,inference less density estimation using copula bayesian networks,24
+59,1769594948,optimal detection of intersections between convex polyhedra,20
+60,1774345111,limits of rush hour logic complexity,9
+61,1777784767,new separation between s f and bs f,9
+62,1791983455,a survey on handover management in mobility architectures,8
+63,1798241237,many task computing and blue waters,5
+64,1812070052,identifying reliable annotations for large scale image segmentation,16
+65,1814471488,improved analysis for subspace pursuit algorithm in terms of restricted isometry constant,28
+66,1815334329,squares of 3 sun free split graphs,9
+67,1816985167,tree dynamics for peer to peer streaming,34
+68,1818292367,stochastic ordering of interferences in large scale wireless networks,28
+69,1818296812,earthquake disaster based efficient resource utilization technique in iaas cloud,5
+70,1823940520,on descriptional complexity of the planarity problem for gauss words,33
+71,1824996543,multi access mimo systems with finite rate channel state feedback,28
+72,1831933153,an information theoretic perspective of the poisson approximation via the chen stein method,28
+73,1838670769,a set and collection lemma,39
+74,1839164722,learning economic parameters from revealed preferences,36
+75,1844261290,towards adapting imagenet to reality scalable domain adaptation with implicit low rank transformations,16
+76,1849650586,using multiple criteria methods to evaluate community partitions,26
+77,1852713323,incremental adaptation strategies for neural network language models,13
+78,1856665498,optimal point to point codes in interference channels an incremental i mmse approach,28
+79,1859168105,a combined approach for constraints over finite domains and arrays,2
+80,1860769804,optimization design and analysis of systematic lt codes over awgn channel,28
+81,1867927193,truth and envy in capacitated allocation games,36
+82,1869518888,smt based bounded model checking of fixed point digital controllers,19
+83,1871136127,google matrix of business process management,3
+84,1874862603,a combinatorial algebraic approach for the identifiability of low rank matrix completion,24
+85,1890858171,iterated ld problem in non associative key establishment,4
+86,1899741157,towards ontological support for principle solutions in mechanical engineering,23
+87,1903515055,formation of robust multi agent networks through self organizing random regular graphs,11
+88,1909770226,fully dynamic bin packing revisited,34
+89,1912377242,throughput capacity of two hop relay manets under finite buffers,29
+90,1913310022,bounds on the capacity of ask molecular communication channels with isi,28
+91,1913435380,ranking the importance level of intermediaries to a criminal using a reliance measure,26
+92,1917184511,approximating the diameter of a graph,34
+93,1921222141,weight assignment logic,33
+94,1923785946,fast label embeddings for extremely large output spaces,24
+95,1924943363,flaglets exact wavelets on the ball,28
+96,1931766922,a sparse bayesian framework for conditioning uncertain geologic models to nonlinear flow measurements,0
+97,1952469305,paxoslease diskless paxos for leases,5
+98,1955298890,learning kernel based halfspaces with the zero one loss,24
+99,1955776637,on the optimality of simple schedules for networks with multiple half duplex relays,28
+100,1956364207,interaction and resistance the recognition of intentions in new human computer interaction,6
+101,1962645729,optimizations for decision making and planning in description logic dynamic knowledge bases,10
+102,1965341892,inference and evaluation of the multinomial mixture model for text clustering,31
+103,1970462373,synchronizing weighted automata,33
+104,1972193127,investigation of commuting hamiltonian in quantum markov network,10
+105,1972197965,the oblivious transfer capacity of the wiretapped binary erasure channel,28
+106,1974252294,combinatorial approximation algorithms for maxcut using random walks,34
+107,1974370252,the ergodic capacity of phase fading interference networks,28
+108,1976930960,informed rrt optimal sampling based path planning focused via direct sampling of an admissible ellipsoidal heuristic,27
+109,1977183758,greendcn a general framework for achieving energy efficiency in data center networks,8
+110,1978451479,games with recurring certainty,2
+111,1978696990,new coherence and rip analysis for weak orthogonal matching pursuit,28
+112,1981029888,rappor randomized aggregatable privacy preserving ordinal response,4
+113,1983815018,increasing flash memory lifetime by dynamic voltage allocation for constant mutual information,28
+114,1984398168,proof pad a new development environment for acl2,23
+115,1985850551,channels as objects in concurrent object oriented programming,22
+116,1994203036,approximate optimal cooperative decentralized control for consensus in a topological network of agents with uncertain nonlinear dynamics,19
+117,1994596572,the role of peer influence in churn in wireless networks,26
+118,2000628897,off the grid spectral compressed sensing with prior information,28
+119,2001557365,a regularized graph layout framework for dynamic network visualization,26
+120,2001699728,area coverage under low sensor density,8
+121,2001942931,fast resource scheduling in hetnets with d2d support,8
+122,2003612823,interference prediction in mobile ad hoc networks with a general mobility model,28
+123,2005285092,how to transfer zero shot object recognition via hierarchical transfer of semantic attributes,16
+124,2005612613,iterative concave rank approximation for recovering low rank matrices,28
+125,2008604527,a general quantitative cryptanalysis of permutation only multimedia ciphers against plaintext attacks,4
+126,2009318757,an efficient assignment of drainage direction over flat surfaces in raster digital elevation models,34
+127,2010239981,whittlesearch interactive image search with relative attribute feedback,16
+128,2015969595,optimized imaging using non rigid registration,16
+129,2023346713,conflict driven asp solving with external sources,10
+130,2023669216,validity of altmetrics data for measuring societal impact a study using data from altmetric and f1000prime,38
+131,2026035956,matched filtering from limited frequency samples,28
+132,2026334295,linear index coding via graph homomorphism,28
+133,2029741572,leader contention based user matching for 802 11 multiuser mimo networks,8
+134,2031384529,new classes of quadratic bent functions in polynomial forms,4
+135,2033252913,about the generalized lm inverse and the weighted moore penrose inverse,14
+136,2035417248,the deterministic time linearity of service provided by fading channels,28
+137,2037610944,promoting truthful behavior in participatory sensing mechanisms,36
+138,2038872199,relatives in the same university faculty nepotism or merit,38
+139,2039623973,inertial parameter identification including friction and motor dynamics,27
+140,2044357496,verifiable source code documentation in controlled natural language,23
+141,2045492734,how to improve the outcome of performance evaluations in terms of percentiles for citation frequencies of my papers,38
+142,2046629409,a polyhedral approximation framework for convex and robust distributed optimization,19
+143,2046927882,cooperative estimation for synchronization of heterogeneous multi agent systems using relative information,19
+144,2049223024,a cooperative q learning approach for real time power allocation in femtocell networks,11
+145,2052978498,fusing text and image for event detection in twitter,31
+146,2054156261,artificial intelligence markup language a brief tutorial,10
+147,2056465590,anomaly detection in online social networks,26
+148,2058503096,efficient synthesis of network updates,22
+149,2061164145,coalgebraic trace semantics for continuous probabilistic transition systems,2
+150,2062637899,using built in domain specific modeling support to guide model based test generation,23
+151,2065627966,cooperative relaying under spatially and temporally correlated interference,28
+152,2067340979,an information theoretic location verification system for wireless networks,28
+153,2067949855,petri nets with time and cost,2
+154,2069293554,novelty detection under multi label multi instance framework,24
+155,2074934005,analysis and design of multi hop diffusion based molecular communication networks,28
+156,2077286704,the henchman problem measuring secrecy by the minimum distortion in a list,28
+157,2079489844,strategic port graph rewriting an interactive modelling and analysis framework,2
+158,2081483301,oversampling increases the pre log of noncoherent rayleigh fading channels,28
+159,2083965535,iec 61499 vs 61131 a comparison based on misperceptions,23
+160,2088010865,the entropy of conditional markov trajectories,28
+161,2088233081,distributive laws and decidable properties of sos specifications,22
+162,2088442093,on covert acoustical mesh networks in air,4
+163,2094380852,high energy first hef heuristic for energy efficient target coverage problem,8
+164,2096400936,dynamic models of reputation and competition in job market matching,36
+165,2096637116,uplink performance evaluation of massive mu mimo systems,28
+166,2096639003,tactics for reasoning modulo ac in coq,32
+167,2096761913,faster radix sort via virtual memory and write combining,34
+168,2097759652,detecting intentional packet drops on the internet via tcp ip side channels extended version,8
+169,2099527426,cognitive and cache enabled d2d communications in cellular networks,28
+170,2100725109,using transmit only sensors to reduce deployment cost of wireless sensor networks,8
+171,2104308413,high sir transmission capacity of wireless networks with general fading and node distribution,28
+172,2109463955,towards a multi criteria development distribution model an analysis of existing task distribution approaches,23
+173,2111132618,proportional fair mu mimo in 802 11 wlans,8
+174,2114297064,dynamic autotuning of adaptive fast multipole methods on hybrid multicore cpu and gpu systems,5
+175,2115394571,codes between mbr and msr points with exact repair property,28
+176,2117327438,efficient reconciliation protocol for discrete variable quantum key distribution,28
+177,2118013417,the evolution of navigable small world networks,34
+178,2118203533,likelihood gradient evaluation using square root covariance filters,19
+179,2121933323,a tensor approach to learning mixed membership community models,24
+180,2123936825,optimizing continued fraction expansion based iir realization of fractional order differ integrators with genetic algorithm,19
+181,2125290027,towards randomized testing of q monomials in multivariate polynomials,9
+182,2127724539,convergence of tâtonnement in fisher markets,36
+183,2128095813,dolfin automated finite element computing,32
+184,2129139293,differential equations for algebraic functions,14
+185,2130190443,test bed based comparison of single and parallel tcp and the impact of parallelism on throughput and fairness in heterogenous networks,8
+186,2131830786,navigation domain representation for interactive multiview imaging,1
+187,2132489970,on the metric distortion of nearest neighbour graphs on random point sets,8
+188,2132690206,an analysis of device free and device based wifi localization systems,8
+189,2136783219,directed information graphs,28
+190,2136787699,design and analysis of a multi carrier differential chaos shift keying communication system,21
+191,2136961259,depechemood a lexicon for emotion analysis from crowd annotated news,30
+192,2137586949,a framework for specifying prototyping and reasoning about computational systems,2
+193,2137768004,hierarchical hidden markov model in detecting activities of daily living in wearable videos for studies of dementia,1
+194,2137817852,the rank and hanna neumann property of some submonoids of a free monoid,33
+195,2138241565,non linear estimation is easy,7
+196,2141581456,fast and scalable structural svm with slack rescaling,24
+197,2146699143,a degree centrality in multi layered social network,26
+198,2148698193,four conceptions of instruction sequence faults,23
+199,2149210625,a game theoretic analysis of incentives in content production and sharing over peer to peer networks,8
+200,2151152358,subjective and objective quality assessment of image a survey,1
+201,2152052626,edge intersection graphs of l shaped paths in grids,39
+202,2152297266,convergence analysis using the edge laplacian robust consensus of nonlinear multi agent systems via iss method,19
+203,2152849372,on the complexity of computing the capacity of codes that avoid forbidden difference patterns,28
+204,2153982189,the long and the short of it summarising event sequences with serial episodes,34
+205,2155894515,sequential complexity as a descriptor for musical similarity,31
+206,2157527521,a classification for community discovery methods in complex networks,26
+207,2160583936,the cost of an epidemic over a complex network a random matrix approach,26
+208,2161621396,the secrecy capacity of compound gaussian mimo wiretap channels,28
+209,2162258888,choreographies and behavioural contracts on the way to dynamic updates,2
+210,2164383533,graph homomorphisms circular colouring and fractional covering by h cuts,39
+211,2165136719,the θ 5 graph is a spanner,20
+212,2165228812,labelrank a stabilized label propagation algorithm for community detection in networks,26
+213,2165925342,topical interests and the mitigation of search engine bias,3
+214,2167761279,parallel interleaver design for a high throughput hspa lte multi standard turbo decoder,28
+215,2168347639,android malware detection using parallel machine learning classifiers,4
+216,2169137280,multi view constrained clustering with an incomplete mapping between views,24
+217,2172166764,assembling thefacebook using heterogeneity to understand online social network assembly,26
+218,2180882408,diffusing private data over networks,34
+219,2184854395,finger based technique fbt an innovative system for improved usability for the blind users dynamic interaction with mobile touch screen devices,6
+220,2193438280,fast algorithms for game theoretic centrality measures,36
+221,2196015344,directional global three part image decomposition,16
+222,2197635914,green cognitive relaying opportunistically switching between data transmission and energy harvesting,28
+223,2204743480,predicting the sentiment polarity and rating of yelp reviews,31
+224,2206436691,beauty and brains detecting anomalous pattern co occurrences,10
+225,2217972116,towards a direct by need evaluator for dependently typed languages,22
+226,2223375486,adm cle approach for detecting slow variables in continuous time markov chains and dynamic data,7
+227,2223602738,real time sign language fingerspelling recognition using convolutional neural networks from depth map,16
+228,2225420026,a game theoretic perspective on communication for omniscience,28
+229,2227810799,improper gaussian signaling in full duplex relay channels with residual self interference,28
+230,2228910404,an action language for multi agent domains foundations,10
+231,2231526355,on ultralimits of sparse graph classes,39
+232,2235247707,political speech generation,30
+233,2240922584,a preliminary study on the learning informativeness of data subsets,30
+234,2243067292,cutting recursive autoencoder trees,30
+235,2247424319,entropy and syntropy in the context of five valued logics,10
+236,2249293447,exploring the influence of scale on artist attribution,16
+237,2254815396,proof terms for infinitary rewriting progress report,2
+238,2257646213,prediction of links and weights in networks by reliable routes,26
+239,2257722703,efficient coding for multi source networks using g acs k orner common information,28
+240,2264830470,map support detection for greedy sparse signal recovery algorithms in compressive sensing,28
+241,2268095327,integrity verification for outsourcing uncertain frequent itemset mining,37
+242,2268261130,optimal staged self assembly of general shapes,20
+243,2268733610,an encoding of array verification problems into array free horn clauses,22
+244,2268938174,supervised dimensionality reduction via distance correlation maximization,24
+245,2270218991,daleel simplifying cloud instance selection using machine learning,5
+246,2270384168,a truthful mechanism with biparameter learning for online crowdsourcing,10
+247,2273364576,high performance python for direct numerical simulations of turbulent flows,32
+248,2275960700,system power minimization to access non contiguous spectrum in cognitive radio networks,8
+249,2278003675,improved bounds for shortest paths in dense distance graphs,34
+250,2280286192,sketching for sequential change point detection,24
+251,2281477989,emergence of consensus in a multi robot network from abstract models to empirical validation,11
+252,2284844860,constructions of snake in the box codes under ell_ infty metric for rank modulation,28
+253,2287998125,an improved analysis of the er spud dictionary learning algorithm,24
+254,2289178639,large peg army maneuvers,39
+255,2289616950,scanning and parsing languages with ambiguities and constraints the lamb and fence algorithms,33
+256,2292071457,overload control in sip networks a heuristic approach based on mathematical optimization,8
+257,2292156587,nesting depth of operators in graph database queries expressiveness vs evaluation complexity,2
+258,2292233400,fetishizing food in digital age foodporn around the world,26
+259,2292983454,satisfiability for two variable logic with two successor relations on finite linear orders,2
+260,2295360187,learning over long time lags,13
+261,2295748565,adaptive delay tolerant dstbc in opportunistic relaying cooperative mimo systems,28
+262,2296412986,pagerank pipeline benchmark proposal for a holistic system benchmark for big data platforms,29
+263,2309645005,networked constrained cyber physical systems subject to malicious attacks a resilient set theoretic control approach,19
+264,2324768677,distributed edge caching scheme considering the tradeoff between the diversity and redundancy of cached content,8
+265,2333200408,the case for dynamic key distribution for pki based vanets,8
+266,2336798767,distributed technology sustained pervasive applications,3
+267,2336902217,more than a million ways to be pushed a high fidelity experimental dataset of planar pushing,27
+268,2339293227,on design mining coevolution and surrogate models,13
+269,2339690594,on the combinatorial complexity of approximating polytopes,20
+270,2340411850,dmath a scalable linear algebra and math library for heterogeneous gp gpu architectures,13
+271,2340518101,on multi point local decoding of reed muller codes,28
+272,2342601131,faster r cnn features for instance search,16
+273,2344349469,hirl hierarchical inverse reinforcement learning for long horizon tasks with delayed rewards,27
+274,2344391187,kernelized covariance for action recognition,16
+275,2345456657,on the gi completeness of a sorting networks isomorphism,9
+276,2345495628,on empirical cumulant generating functions of code lengths for individual sequences,28
+277,2346786930,improving image captioning by concept based sentence reranking,16
+278,2356394976,inference based semantics in data exchange,37
+279,2396289155,bounds on the communication rate needed to achieve sk capacity in the hypergraphical source model,28
+280,2398498549,total variation reconstruction for compressive sensing using nonlocal lagrangian multiplier,16
+281,2402158869,inter technology coexistence in a spectrum commons a case study of wi fi and lte in the 5 ghz unlicensed band,8
+282,2404467351,secure repairable fountain codes,28
+283,2404691361,the logic of counting query answers,2
+284,2405163796,secure friend discovery via privacy preserving and decentralized community detection,4
+285,2407537099,iris recognition with a database of iris images obtained in visible light using smartphone camera,16
+286,2408074187,residual networks are exponential ensembles of relatively shallow networks,16
+287,2408337087,i accidentally the whole internet,8
+288,2408511749,do users focus on the correct cues to differentiate between phishing and genuine emails,3
+289,2408795146,spontaneous subtle expression detection and recognition based on facial strain,16
+290,2410872382,dialport connecting the spoken dialog research community to real user data,10
+291,2410943269,low complexity antenna selection for low target rate users in dense cloud radio access networks,28
+292,2411326260,interdiction in practice hardware trojan against a high security usb flash drive,4
+293,2412257014,computing backup forwarding rules in software defined networks,8
+294,2413522668,bitcoin s security model revisited,4
+295,2416903034,latent bi constraint svm for video based object recognition,16
+296,2417853429,minimax estimation of kl divergence between discrete distributions,28
+297,2418863753,weighted residuals for very deep networks,16
+298,2431266723,image edge detection based on swarm intelligence using memristive networks,18
+299,2435229718,the crossover process learnability meets protection from inference attacks,24
+300,2443333194,fundamentals of modeling finite wireless networks using binomial point process,28
+301,2460547098,double detector for sparse signal detection from one bit compressed sensing measurements,28
+302,2462262952,a modified activation function with improved run times for neural networks,13
+303,2462831000,bridging nonlinearities and stochastic regularizers with gaussian error linear units,24
+304,2463545666,there is something beyond the twitter network,26
+305,2463731291,show me the cup reference with continuous representations,30
+306,2465128116,a note on some inequalities used in channel polarization and polar coding,28
+307,2466365654,energy efficient routing in wireless networks in the presence of jamming,8
+308,2466463215,improved lower bounds for online hypercube packing,34
+309,2470804058,neural network based next song recommendation,31
+310,2471451742,person identification based on hand tremor characteristics,6
+311,2476291847,community detection in political twitter networks using nonnegative matrix factorization methods,26
+312,2477904218,a non parametric learning approach to identify online human trafficking,24
+313,2482193752,doubly massive mmwave mimo systems using very large antenna arrays at both transmitter and receiver,28
+314,2485579787,context discovery for model learning in partially observable environments,27
+315,2494463181,a linear kernel for finding square roots of almost planar graphs,34
+316,2505385900,on hybrid pilot for channel estimation in massive mimo uplink,28
+317,2509446789,reflections on shannon information in search of a natural information entropy for images,28
+318,2510207728,indexing and querying color sets of images,34
+319,2511093380,secret sharing with trusted third parties using piggy bank protocol,4
+320,2514222156,testing k monotonicity,34
+321,2514795163,recurrent regression for face recognition,16
+322,2515043645,identifying dogmatism in social media signals and models,30
+323,2516389973,a non stochastic learning approach to energy efficient mobility management,8
+324,2520305843,pilot contamination attack detection by key confirmation in secure mimo systems,28
+325,2521305694,relief r cnn utilizing convolutional feature interrelationship for fast object detection deployment,16
+326,2522790424,detection of biasing attacks on distributed estimation networks,19
+327,2523612053,psi ψ a private data sharing interface,4
+328,2524377659,the north south divide in the italian higher education system,38
+329,2524638710,fusing similarity models with markov chains for sparse sequential recommendation,31
+330,2525951180,cnndroid gpu accelerated execution of trained deep convolutional neural networks on android,5
+331,2527255948,ap16 ol7 a multilingual database for oriental languages and a language recognition baseline,30
+332,2530700328,computation of forward stochastic reach sets application to stochastic dynamic obstacle avoidance,19
+333,2531240553,distributed averaging cnn elm for big data,24
+334,2533229206,topic based influence computation in social networks under resource constraints,26
+335,2538853998,code definition analysis for call graph generation,23
+336,2541244035,learning to reason with adaptive computation,30
+337,2542357048,geometry of polysemy,30
+338,2547373914,towards lifelong self supervision a deep learning direction for robotics,27
+339,2559424230,poseidon face from depth for driver pose estimation,16
+340,2563605494,signal to noise in matching markets,36
+341,2564814930,tactics and tallies inferring voter preferences in the 2016 u s presidential primaries using sparse learning,26
+342,2574004477,distributed algorithm for collision avoidance at road intersections in the presence of communication failures,8
+343,2575436837,on the content security policy violations due to the same origin policy,4
+344,2577189726,a new backpressure algorithm for joint rate control and routing with vanishing utility optimality gaps and finite queue lengths,8
+345,2578277702,optimal placement delivery arrays,28
+346,2580068393,factored contextual policy search with bayesian optimization,24
+347,2581141195,optimal inference in crowdsourced classification via belief propagation,24
+348,2582507901,localization in mobile networks via virtual convex hulls,19
+349,2582667927,flexonc joint cooperative forwarding and network coding with precise encoding conditions,8
+350,2583019817,neural networks based eeg speech models,25
+351,2583317429,fairness aware caching and radio resource allocation for the downlink of multi cell ofdma systems,28
+352,2583379913,distributed infrastructure inspection path planning subject to time constraints,27
+353,2585522788,robust multigrid for cartesian interior penalty dg formulations of the poisson equation in 3d,0
+354,2587700222,smpost parts of speech tagger for code mixed indic social media text,30
+355,2587944871,quantifying search bias investigating sources of bias for political searches in social media,26
+356,2588356017,the submodular secretary problem under a cardinality constraint and with limited resources,34
+357,2591735613,statistical anomaly detection via composite hypothesis testing for markov models,19
+358,2591857971,sparse representation based multi sensor image fusion a review,16
+359,2592546902,communication efficient algorithms for distributed stochastic principal component analysis,24
+360,2593178238,secure virtual network embedding in a multi cloud environment,8
+361,2593221019,a time series distance measure for efficient clustering of input output signals by their underlying dynamics,19
+362,2594414520,unsupervised domain adaptation using approximate label matching,24
+363,2594502924,robust phase retrieval via admm with outliers,28
+364,2594757924,belief propagation in conditional rbms for structured prediction,24
+365,2601670820,a consensus based secondary control layer for stable current sharing and voltage balancing in dc microgrids,19
+366,2604507718,sce a manifold regularized set covering method for data partitioning,16
+367,2604993425,coupling of crop assignment and vehicle routing for harvest planning in agriculture,19
+368,2605020549,why smart appliances may result in a stupid energy grid,19
+369,2605095164,lesionseg semantic segmentation of skin lesions using deep convolutional neural network,16
+370,2605333377,applying deep machine learning for psycho demographic profiling of internet users using o c e a n model of personality,24
+371,2605775151,parsimonious data how a single facebook like predicts voting behavior in multiparty systems,26
+372,2605904100,simplified stochastic feedforward neural networks,24
+373,2606279635,middleware technologies for cloud of things a survey,5
+374,2607126301,a robust blind watermarking using convolutional neural network,1
+375,2608161825,on predicting geolocation of tweets using convolutional neural networks,26
+376,2608199279,a general private information retrieval scheme for mds coded databases with colluding servers,28
+377,2608771265,extending word problems in deterministic finite automata,33
+378,2608992661,optimal algorithms for hitting topological minors on graphs of bounded treewidth,34
+379,2610416447,query adaptive video summarization via quality aware relevance estimation,16
+380,2610850660,data augmentation for low resource neural machine translation,30
+381,2610905707,large scale feature selection of risk genetic factors for alzheimer s disease via distributed group lasso regression,24
+382,2611510109,understanding people flow in transportation hubs,16
+383,2612161657,lexipers an ontology based sentiment lexicon for persian,30
+384,2612364175,cross sentence n ary relation extraction with graph lstms,30
+385,2613593596,mining communication data in a music community a preliminary analysis,26
+386,2613614176,cross lingual distillation for text classification,30
+387,2613807087,performance analysis of decoupled cell association in multi tier hybrid networks using real blockage environments,28
+388,2615344953,completeness theorems for pomset languages and concurrent kleene algebras,33
+389,2617308160,an effective algorithm for hyperparameter optimization of neural networks,10
+390,2618429789,an algorithm of frequency estimation for multi channel coprime sampling,28
+391,2618680849,the emergence and evolution of the research fronts in hiv aids research,26
+392,2620911965,mobile edge computing empowers internet of things,5
+393,2621813772,the temporal event graph,26
+394,2622049782,deepsf deep convolutional neural network for mapping protein sequences to folds,24
+395,2622353612,adversarial playground a visualization suite for adversarial sample generation,4
+396,2623604707,securing databases from probabilistic inference,4
+397,2625030192,persistent flows and non reciprocal interactions in deterministic networks,19
+398,2625226699,simultaneous merging multiple grid maps using the robust motion averaging,10
+399,2675515042,joint resource allocation in swipt based multi antenna decode and forward relay networks,28
+400,2694027581,sequential composition in the presence of intermediate termination,2
+401,2725310424,on the role of text preprocessing in neural network architectures an evaluation study on text categorization and sentiment analysis,30
+402,2726162513,on sound relative error bounds for floating point arithmetic,22
+403,2726481478,a simple centrality index for scientific social recognition,38
+404,2731764626,speaker recognition with cough laugh and wei,25
+405,2732305114,centralized and distributed sparsification for low complexity message passing algorithm in c ran architectures,28
+406,2733117079,on signal reconstruction from frog measurements,28
+407,2733858448,a note on first order spectra with binary relations,2
+408,2735642330,toward controlled generation of text,24
+409,2736337741,a pilot study of domain adaptation effect for neural abstractive summarization,30
+410,2736532986,wireless powered cooperative jamming for secure ofdm system,28
+411,2737126875,digital investigation of pdf files unveiling traces of embedded malware,4
+412,2737803646,an alon boppana type bound for weighted graphs and lowerbounds for spectral sparsification,39
+413,2738498529,a knowledge based analysis of the blockchain protocol,4
+414,2738663878,machine learning for anomaly detection and categorization in multi cloud environments,4
+415,2739505911,synthesis of positron emission tomography pet images via multi channel generative adversarial networks gans,16
+416,2739512085,challenging neural dialogue models with natural data memory networks fail on incremental phenomena,30
+417,2740603799,towards vision based smart hospitals a system for tracking and monitoring hand hygiene compliance,16
+418,2741859509,an open source c implementation of multi threaded gaussian mixture models k means and expectation maximisation,32
+419,2741995211,a comparative study of the clinical use of motion analysis from kinect skeleton data,16
+420,2742909326,structural patterns of information cascades and their implications for dynamics and semantics,26
+421,2743758565,nonconvex sparse logistic regression with weakly convex regularization,24
+422,2744766693,improved speech reconstruction from silent video,16
+423,2744770518,layouts for plane graphs on constant number of tracks,20
+424,2747096658,a fast noniterative algorithm for compressive sensing using binary measurement matrices,28
+425,2749617271,activation maximization generative adversarial nets,24
+426,2749784589,non uniform wavelet sampling for rf analog to information conversion,28
+427,2749856959,an fpt algorithm for planar multicuts with sources and sinks on the outer face,34
+428,2751688886,passgan a deep learning approach for password guessing,4
+429,2752263152,too far to see not really pedestrian detection with scale aware localization policy,16
+430,2752395459,the satisfiability problem for boolean set theory with a choice correspondence,2
+431,2752451318,the descriptive complexity of modal mu model checking games,2
+432,2752998136,progress space tradeoffs in single writer memory implementations,5
+433,2754420477,one bit sphere decoding for uplink massive mimo systems with one bit adcs,28
+434,2754539945,an inversion based learning approach for improving impromptu trajectory tracking of robots with non minimum phase dynamics,27
+435,2755572239,safe robust reachability analysis of hybrid systems,2
+436,2755624925,validity guided synthesis of reactive systems from assume guarantee contracts,23
+437,2755935915,e 2 bows an end to end bag of words model via deep convolutional neural network,16
+438,2756442302,throughput and robustness guaranteed beam tracking for mmwave wireless networks,8
+439,2757192835,a new balanced subdivision of a simple polygon for time space trade off algorithms,20
+440,2757570709,unsupervised contact learning for humanoid estimation and control,27
+441,2758367626,modular verification of interrupt driven software,22
+442,2759504247,dynamic reconfiguration of mission parameters in underwater human robot collaboration,27
+443,2760218562,replicability analysis for natural language processing testing significance with multiple datasets,30
+444,2760946557,differential dissipativity theory for dominance analysis,19
+445,2761264891,theoretical computer science for the working category theorist,2
+446,2761749680,4 connected planar graphs are in b 3 epg,20
+447,2761873684,rainbow combining improvements in deep reinforcement learning,10
+448,2762013948,characterizing a spectrum of audience interactivity,6
+449,2762206424,the path to path traced movies,16
+450,2762747762,the quest for scalability and accuracy multi level simulation of the internet of things,29
+451,2763049606,reconstruction of hidden representation for robust feature extraction,24
+452,2763272531,a lambda calculus for transfinite arrays unifying arrays and streams,22
+453,2763389080,libact pool based active learning in python,24
+454,2765165237,democratizing online controlled experiments at booking com,6
+455,2765219640,an optimal choice dictionary,34
+456,2765291116,maximum value matters finding hot topics in scholarly fields,26
+457,2765422128,maintaining a distributed spanning forest in highly dynamic networks,5
+458,2765479240,toward reducing crop spoilage and increasing small farmer profits in india a simultaneous hardware and software solution,3
+459,2765545856,clickbait detection in tweets using self attentive network,30
+460,2766284073,deeprank a new deep architecture for relevance ranking in information retrieval,31
+461,2766294930,learning from incomplete ratings using nonlinear multi layer semi nonnegative matrix factorization,24
+462,2766371994,learning one hidden layer neural networks with landscape design,24
+463,2766450720,low precision rnns quantizing rnns without losing accuracy,24
+464,2766829334,an fpt algorithm beating 2 approximation for k cut,34
+465,2767058493,sea level anomaly prediction using recurrent neural networks,16
+466,2767356838,machine learning based fast power integrity classifier,21
+467,2767453033,characterizing sparse connectivity patterns in neural networks,24
+468,2767767871,rudin shapiro like polynomials with maximum asymptotic merit factor,28
+469,2768439981,p4 compatible high level synthesis of low latency 100 gb s streaming packet parsers in fpgas,15
+470,2769903030,reflection aware sound source localization,25
+471,2770302340,unsupervised learning of object frames by dense equivariant image labelling,16
+472,2771208044,chaining identity mapping modules for image denoising,16
+473,2771841667,deep learning for reliable mobile edge analytics in intelligent transportation systems,28
+474,2772125660,timely throughput optimal scheduling with prediction,8
+475,2772217839,zero shot visual recognition using semantics preserving adversarial embedding networks,16
+476,2772489743,bridge the gap between group sparse coding and rank minimization via adaptive dictionary learning,16
+477,2774837955,a novel embedding model for knowledge base completion based on convolutional neural network,30
+478,2775473773,a database linking piano and orchestral midi scores with application to automatic projective orchestration,25
+479,2775819752,millimeter wave interference avoidance via building aware associations,8
+480,2775899375,a look at the time delays in cvss vulnerability scoring,4
+481,2776069867,text text extractor tool for handwritten document transcription and annotation,38
+482,2776147641,automatic analysis of eegs using big data and hybrid deep learning architectures,24
+483,2776313002,pkc pc a variant of the mceliece public key cryptosystem based on polar codes,4
+484,2777012514,deep neural networks as 0 1 mixed integer linear programs a feasibility study,24
+485,2779680023,leveraging text and knowledge bases for triple scoring an ensemble approach the bokchoy triple scorer at wsdm cup 2017,31
+486,2782054271,social media analysis based on semanticity of streaming and batch data,30
+487,2782733358,network representation learning a survey,26
+488,2782758897,common tangents of two disjoint polygons in linear time and constant workspace,20
+489,2783105744,stabilizing unstable periodic orbits with delayed feedback control in act and wait fashion,19
+490,2783112387,statistical blockage modeling and robustness of beamforming in millimeter wave systems,28
+491,2783348085,frame recurrent video super resolution,16
+492,2783848564,edgeflow open source multi layer data flow processing in edge computing for 5g and beyond,8
+493,2784524972,robust integral action of port hamiltonian systems,19
+494,2784997849,relaxed conditions for secrecy in a role based specification,4
+495,2785247517,a systematic review of productivity factors in software development,23
+496,2785321380,deep learning for malicious flow detection,24
+497,2785433750,learning multiple levels of representations with kernel machines,24
+498,2785507676,a spatial mapping algorithm with applications in deep learning based structure classification,16
+499,2785533664,measuring the intrinsic dimension of objective landscapes,24
+500,2785540181,improving active learning in systematic reviews,31
+501,2785578097,maximum total correntropy diffusion adaptation over networks with noisy links,28
+502,2786335707,holoface augmenting human to human interactions on hololens,16
+503,2786564904,intelliav building an effective on device android malware detector,4
+504,2786634640,what is gab a bastion of free speech or an alt right echo chamber,26
+505,2786802517,ppfnet global context aware local features for robust 3d point matching,16
+506,2787045403,molecular structure extraction from documents using deep learning,24
+507,2787402405,oei operation execution integrity for embedded devices,4
+508,2787579267,cgans with projection discriminator,24
+509,2787642177,socialml machine learning for social media video creators,16
+510,2787928077,augmented cyclegan learning many to many mappings from unpaired data,24
+511,2788157421,ccp conflicts check protocol for bitcoin block security,4
+512,2788362500,classification of breast cancer histology images using transfer learning,16
+513,2788420036,tool demonstration fsolidm for designing secure ethereum smart contracts,4
+514,2788425869,real world repetition estimation by div grad and curl,16
+515,2788985312,caching in combination networks a novel delivery by leveraging the network topology,28
+516,2789000096,size based termination of higher order rewriting,2
+517,2789446524,exploiting friction in torque controlled humanoid robots,27
+518,2789810536,the role of the task topic in web search of different task types,31
+519,2789903762,byzantine stochastic gradient descent,24
+520,2790439946,real time deep learning method for abandoned luggage detection in video,16
+521,2790502797,improved scaling law for activity detection in massive mimo systems,28
+522,2791334856,expert finding in heterogeneous bibliographic networks with locally trained embeddings,31
+523,2792155043,aspiration based perturbed learning automata,36
+524,2792174932,gerrymandering and compactness implementation flexibility and abuse,3
+525,2792249373,distributed transactions dissecting the nightmare,5
+526,2792827505,learning spectral spatial temporal features via a recurrent convolutional neural network for change detection in multispectral imagery,16
+527,2793001461,age of information in a network of preemptive servers,28
+528,2793968975,quantification of lung abnormalities in cystic fibrosis using deep networks,16
+529,2794187674,intrinsically motivated reinforcement learning for human robot interaction in the real world,27
+530,2794426516,cross lingual and multilingual speech emotion recognition on english and french,30
+531,2794643322,qmix monotonic value function factorisation for deep multi agent reinforcement learning,24
+532,2794674590,communication in open source projects end of the e mail era,23
+533,2794823433,stochastic variational inference with gradient linearization,16
+534,2794852379,pir array codes with optimal virtual server rate,28
+535,2794945088,deep communicating agents for abstractive summarization,30
+536,2795246565,privacy preserving sensory data recovery,4
+537,2795417538,restoration of pansharpened images by conditional filtering in the pca domain,16
+538,2795587979,simple dynamic algorithms for maximal independent set and other problems,34
+539,2795754649,attribute centered loss for soft biometrics guided face sketch photo recognition,16
+540,2795999188,deepim deep iterative matching for 6d pose estimation,16
+541,2796057488,movie pirates of the caribbean exploring illegal streaming cyberlockers,3
+542,2796352678,spatially coupled turbo like codes a new trade off between waterfall and error floor,28
+543,2796440186,question type guided attention in visual question answering,16
+544,2796902985,adversarial training versus weight decay,24
+545,2797197220,enhancing cybersecurity skills by creating serious games,3
+546,2797480241,netadapt platform aware neural network adaptation for mobile applications,16
+547,2797569767,peeking the impact of points of interests on didi,3
+548,2798487859,quantum b uchi automata,2
+549,2798683079,crisismmd multimodal twitter datasets from natural disasters,26
+550,2798801347,low rank approximation in the presence of outliers,34
+551,2798811024,lightweight probabilistic deep networks,16
+552,2798957492,inceptext a new inception text module with deformable psroi pooling for multi oriented scene text detection,16
+553,2799130069,understanding uav cellular communications from existing networks to massive mimo,28
+554,2799163527,automation of road intersections using consensus based auction algorithms,19
+555,2799236921,analogical reasoning on chinese morphological and semantic relations,30
+556,2799256272,target apps selection towards a unified search framework for mobile devices,31
+557,2799364841,symmetric rendezvous with advice how to rendezvous in a disk,39
+558,2799525592,comparing phonemes and visemes with dnn based lipreading,16
+559,2801059772,advanced local motion patterns for macro and micro facial expression recognition,16
+560,2802048525,the wisdom of the network how adaptive networks promote collective intelligence,26
+561,2802575772,distributed multiple access with multiple transmission options at the link layer,28
+562,2802600798,multicast networks solvable over every finite field,28
+563,2803073027,robustness of sentence length measures in written texts,30
+564,2803113791,scalable methods for 8 bit training of neural networks,24
+565,2803155336,learning attentional communication for multi agent cooperation,10
+566,2803350198,generating high quality surface realizations using data augmentation and factored sequence models,30
+567,2803974531,a simple stochastic variance reduced algorithm with fast convergence rates,24
+568,2803999577,wisenetmd motion detection using dynamic background region analysis,16
+569,2804069376,hyperbolic attention networks,13
+570,2804227495,improving the gaussian mechanism for differential privacy analytical calibration and optimal denoising,24
+571,2804410979,online multi object tracking with historical appearance matching and scene adaptive detection filtering,16
+572,2804513722,algorithms and analysis for the sparql constructs,37
+573,2804581867,annotating electronic medical records for question answering,30
+574,2805459882,a preliminary exploration of floating point grammatical evolution,10
+575,2805566098,relay a new ir for machine learning frameworks,22
+576,2806022935,transformationally identical and invariant convolutional neural networks through symmetric element operators,16
+577,2806253709,dialogwae multimodal response generation with conditional wasserstein auto encoder,30
+578,2806327167,shape robust text detection with progressive scale expansion network,16
+579,2806387370,large margin classification in hyperbolic space,24
+580,2806429264,end to end named entity extraction from speech,30
+581,2806515050,ten years of research on intelligent educational games for learning spelling and mathematics,3
+582,2807195518,improving surgical training phantoms by hyperrealism deep unpaired image to image translation from real surgeries,3
+583,2808195542,deep lip reading a comparison of models and an online application,16
+584,2808278571,learning 6 dof grasping and pick place using attention focus,27
+585,2808404826,right for the right reason training agnostic networks,24
+586,2808768547,latent heterogeneous multilayer community detection,26
+587,2808815309,probabilistic natural language generation with wasserstein autoencoders,30
+588,2809032952,calorinet from silhouettes to calorie estimation in private environments,16
+589,2809353777,binary ensemble neural network more bits per network or more networks per bit,24
+590,2809678767,stability of kalman filtering with a random measurement equation application to sensor scheduling with intermittent observations,19
+591,2809716546,solving atari games using fractals and entropy,10
+592,2810202096,reachability in timed automata with diagonal constraints,2
+593,2810387969,octen online compression based tensor decomposition,24
+594,2810533955,neuro symbolic execution the feasibility of an inductive approach to symbolic execution,22
+595,2810845273,search rank fraud de anonymization in online systems,26
+596,2810961304,efficient parallel self assembly under uniform control inputs,20
+597,2811027900,transfer learning for clinical time series analysis using recurrent neural networks,24
+598,2811034418,computing the metric dimension by decomposing graphs into extended biconnected components,9
+599,2811456079,asymptotic analysis of spatial coupling coding for compute and forward relaying,28
+600,2820951506,deepmove learning place representations through large scale movement data,24
+601,2882892967,derivation of the closed form ber expressions for dl noma over nakagami m fading channels,28
+602,2883004598,optimization of battery energy storage to improve power system oscillation damping,19
+603,2884288768,dla compiler and fpga overlay for neural network inference acceleration,5
+604,2884506312,gated fusion network for joint image deblurring and super resolution,16
+605,2885850791,visualizing convolutional networks for mri based diagnosis of alzheimer s disease,16
+606,2886099836,parallelization does not accelerate convex optimization adaptivity lower bounds for non smooth convex minimization,24
+607,2886216536,cognitive techniques for early detection of cybersecurity events,4
+608,2886351808,progressive operational perceptron with memory,13
+609,2886616607,quantified markov logic networks,10
+610,2886620977,towards a new extracting and querying approach of fuzzy summaries,37
+611,2886748926,video to video synthesis,16
+612,2886818025,application of end to end deep learning in wireless communications systems,28
+613,2886881561,reasoning with justifiable exceptions in contextual hierarchies appendix,10
+614,2887199985,estimating failure in brittle materials using graph theory,7
+615,2887256099,towards audio to scene image synthesis using generative adversarial network,30
+616,2887420797,unsupervised learning of foreground object segmentation,16
+617,2887806996,deepmag source specific motion magnification using gradient ascent,16
+618,2888515142,who is really affected by fraudulent reviews an analysis of shilling attacks on recommender systems in real world scenarios,31
+619,2888639576,stdp learning of image patches with convolutional spiking neural networks,13
+620,2889642831,rigid body dynamic simulation with multiple convex contact patches,27
+621,2889678803,a simplicial complex model for dynamic epistemic logic to study distributed task computability,2
+622,2889681790,data augmentation for neural online chat response selection,30
+623,2889762385,machine learning for semi linear pdes,24
+624,2890741595,an energy based analysis of reduced order models of networked synchronous machines,19
+625,2890762086,xml navigation and transformation by tree walking automata and transducers with visible and invisible pebbles,33
+626,2891688681,multi context deep network for angle closure glaucoma screening in anterior segment oct,16
+627,2891754318,reinforcement learning in topology based representation for human body movement with whole arm manipulation,27
+628,2892009954,deep compressive autoencoder for action potential compression in large scale neural recording,13
+629,2892085193,i know what you want semantic learning for text comprehension,30
+630,2892122909,unsupervised cross lingual matching of product classifications,30
+631,2892212780,decentralized search on decentralized web,31
+632,2893143132,deeplaser practical fault attack on deep neural networks,4
+633,2893179710,temporal cliques admit sparse spanners,39
+634,2893268956,learning to coordinate multiple reinforcement learning agents for diverse query reformulation,24
+635,2893278801,joint activity detection and channel estimation for iot networks phase transition and computation estimation tradeoff,28
+636,2893602300,operations on partial orders,2
+637,2893872548,learning without interaction requires separation,24
+638,2894612187,cello 3d estimating the covariance of icp in the real world,27
+639,2894788161,learning depth with convolutional spatial propagation network,16
+640,2895020057,adversarial examples a complete characterisation of the phenomenon,16
+641,2895045024,corrections to wyner s common information under r enyi divergence measures,28
+642,2895669808,indirect mechanism design for efficient and stable renewable energy aggregation,36
+643,2896257562,neural variational hybrid collaborative filtering,31
+644,2896790514,analyzing and interpreting convolutional neural networks in nlp,30
+645,2896992269,real time self adaptive deep stereo,16
+646,2897025488,a modern take on the bias variance tradeoff in neural networks,24
+647,2897071425,online learning with feedback graphs and switching costs,24
+648,2897239789,continual state representation learning for reinforcement learning using generative replay,24
+649,2897490229,human competitive patches in automatic program repair with repairnator,23
+650,2897490830,design challenges of multi uav systems in cyber physical applications a comprehensive survey and future directions,27
+651,2898072074,conceptual organization is revealed by consumer activity patterns,10
+652,2898132662,improved hybrid ctc attention model for speech recognition,25
+653,2898201669,physical unclonable function based key sharing for iot security,4
+654,2898258448,structure learning of deep networks via dna computing algorithm,13
+655,2898350943,law and adversarial machine learning,24
+656,2898387785,unsupervised data selection for supervised learning,16
+657,2898419822,exploiting the laws of order in smart contracts,4
+658,2899017552,neural music synthesis for flexible timbre control,25
+659,2900240996,a review for weighted minhash algorithms,34
+660,2900531094,copy the old or paint anew an adversarial framework for non parametric image stylization,16
+661,2900579567,fotonnet a hw efficient object detection system using 3d depth segmentation and 2d dnn classifier,16
+662,2900842112,attention please adversarial defense via attention rectification and preservation,16
+663,2900949092,lightweight lipschitz margin training for certified defense against adversarial examples,24
+664,2901174038,practical deep reinforcement learning approach for stock trading,24
+665,2901469772,pair wise exchangeable feature extraction for arbitrary style transfer,16
+666,2901574935,on buildings that compute a proposal,18
+667,2901607659,limited gradient descent learning with noisy labels,24
+668,2901739041,mixed precision training for nlp and speech recognition with openseq2seq,30
+669,2901779532,efficient and scalable multi task regression on massive number of tasks,24
+670,2901978819,a study of the feasibility of co located app attacks against ble and a large scale analysis of the current application layer security landscape,4
+671,2902240649,model evaluation model selection and algorithm selection in machine learning,24
+672,2902296270,dense xunit networks,16
+673,2902497586,document structure measure for hypernym discovery,30
+674,2902557666,towards secure and efficient payment channels,4
+675,2902749952,explaining the ambiguity of object detection and 6d pose from visual data,16
+676,2903004694,adversarial defense by stratified convolutional sparse coding,16
+677,2903056976,modeling treatment delays for patients using feature label pairs in a time series,24
+678,2903200123,deepvoxels learning persistent 3d feature embeddings,16
+679,2903250286,binary sequence set design for interferer rejection in multi branch modulation,28
+680,2903805326,enumeration structural and dimensional synthesis of robotic hands theory and implementation,27
+681,2904103890,levy flights of the collective imagination,26
+682,2904145923,hybrid reinforcement learning with expert state sequences,24
+683,2905153101,an improvement of paa on trend based approximation for time series,24
+684,2905487937,the isti rapid response on exploring cloud computing 2018,5
+685,2906947607,risk aware multi armed bandits using conditional value at risk,24
+686,2906959110,visibly pushdown languages over sliding windows,33
+687,2907366400,actor conditioned attention maps for video action detection,16
+688,2907886055,transfer learning from language models to image caption generators better models may not transfer better,30
+689,2908544974,non asymptotic fundamental limits of guessing subject to distortion,28
+690,2908729273,composite shape modeling via latent space factorization,16
+691,2909002451,storns stochastic radio access network slicing,28
+692,2909735162,look before you sweep visibility aware motion planning,27
+693,2910138965,gif2video color dequantization and temporal interpolation of gif images,16
+694,2910326436,prototypical metric transfer learning for continuous speech keyword spotting with limited training data,25
+695,2910342249,real time monitoring of social media and digital press,30
+696,2910869157,on geometric complexity theory multiplicity obstructions are stronger than occurrence obstructions,9
+697,2911358086,stabilization time in weighted minority processes,39
+698,2911481909,a data driven method of optimizing feedforward compensator for autonomous vehicle,27
+699,2911543874,on the capacity region of bipartite and tripartite entanglement switching,8
+700,2911610870,analysis of data harvesting by unmanned aerial vehicles,28
+701,2911787152,interpretable neural networks for predicting mortality risk using multi modal electronic health records,24
+702,2911965419,managing popularity bias in recommender systems with personalized re ranking,31
+703,2912004605,a deterministic approach to avoid saddle points,24
+704,2912030092,capacity allocation analysis of neural networks a tool for principled architecture design,24
+705,2912223035,towards jointly optimal placement and delivery to code or not to code in wireless caching networks,28
+706,2912477994,situation aware pedestrian trajectory prediction with spatio temporal attention model,16
+707,2913058692,wikilinkgraphs a complete longitudinal and multi language dataset of the wikipedia link networks,26
+708,2913079660,learning for dc opf classifying active sets using neural nets,19
+709,2913547314,exploration of performance and energy trade offs for heterogeneous multicore architectures,5
+710,2913624634,robustness certificates against adversarial examples for relu networks,24
+711,2913687563,linear inequality constraints for neural network activations,24
+712,2913789312,synthesizing facial photometries and corresponding geometries using generative adversarial networks,20
+713,2914104942,deep learning for bridge load capacity estimation in post disaster and conflict zones,16
+714,2914233300,confidence trigger detection an approach to build real time tracking by detection system,16
+715,2914312101,geogan a conditional gan with reconstruction and style loss to generate standard layer of maps from satellite images,16
+716,2914681686,engineered self organization for resilient robot self assembly with minimal surprise,13
+717,2914765585,on efficient optimal transport an analysis of greedy and accelerated mirror descent algorithms,34
+718,2914808443,trust region guided proximal policy optimization,24
+719,2914898847,deep learning based motion planning for autonomous vehicle using spatiotemporal lstm network,16
+720,2914949667,automated quality control in image segmentation application to the uk biobank cardiac mr imaging study,16
+721,2915918561,busyhands a hand tool interaction database for assembly tasks semantic segmentation,16
+722,2916562010,towards real time eyeblink detection in the wild dataset theory and practices,16
+723,2916826721,investigating generalisation in continuous deep reinforcement learning,24
+724,2917138319,robust re identification of manta rays from natural markings by learning pose invariant embeddings,16
+725,2918130758,coded distributed computing with heterogeneous function assignments,28
+726,2918696414,bacsoft a tool to archive data on bacteria,18
+727,2920063196,representative task self selection for flexible clustered lifelong learning,24
+728,2920431256,graph neural networks for modelling traffic participant interaction,24
+729,2920741755,rgbd based dimensional decomposition residual network for 3d semantic scene completion,16
+730,2920887644,styleremix an interpretable representation for neural image style transfer,16
+731,2921304802,offensive language analysis using deep learning architecture,30
+732,2921918986,correct by construction control synthesis for buck converters with event triggered state measurement,19
+733,2921979992,interacting spreading processes in multilayer networks,26
+734,2922115235,botgraph web bot detection based on sitemap,4
+735,2922249902,neural network optimized 1 bit precoding for massive mu mimo,28
+736,2922344980,a distributed observer for a discrete time linear system,19
+737,2922422516,a new approach for distributed hypothesis testing with extensions to byzantine resilience,19
+738,2922717338,context constrained accurate contour extraction for occlusion edge detection,16
+739,2922874720,safety guided deep reinforcement learning via online gaussian process estimation,24
+740,2923908626,trends challenges and adopted strategies in robocup home 2019 version,27
+741,2924032504,rescue a framework for real time feedback on behavioral cues using multimodal anomaly detection,6
+742,2924116063,mixture of pre processing experts model for noise robust deep learning on resource constrained platforms,24
+743,2925348613,knowledge adaptation for efficient semantic segmentation,16
+744,2926841917,towards motion invariant authentication for on body iot devices,4
+745,2928530452,learning matchable colorspace transformations for long term metric visual localization,16
+746,2928817239,rate optimal denoising with deep neural networks,28
+747,2929095093,achieving greater concurrency in execution of smart contracts using object semantics,5
+748,2930003153,curls whey boosting black box adversarial attacks,16
+749,2930382063,an asymmetric adaptive scl decoder hardware for ultra low error rate polar codes,28
+750,2932480350,360 panorama synthesis from a sparse set of images with unknown field of view,16
+751,2933655602,structural scaffolds for citation intent classification in scientific publications,30
+752,2933714206,semantic nearest neighbor fields monocular edge visual odometry,16
+753,2934806712,occlusion guided compact template learning for ensemble deep network based pose invariant face recognition,16
+754,2935117511,proving tree algorithms for succinct data structures,22
+755,2936295285,unsupervised acoustic unit discovery for speech synthesis using discrete latent variable neural networks,30
+756,2936520980,learning discriminative model prediction for tracking,16
+757,2936883713,deepatlas joint semi supervised learning of image registration and segmentation,16
+758,2936899590,trick or heat attack on amplification circuits to abuse critical temperature control systems,4
+759,2938696877,learning interpretable disentangled representations using adversarial vaes,24
+760,2938927628,an efficient formula synthesis method with past signal temporal logic,2
+761,2939522634,personalized sentence generation using generative adversarial networks with author specific word usage,30
+762,2940183409,single pixel reconstruction for one stage instance segmentation,16
+763,2941026327,hog feature extraction from encrypted images for privacy preserving machine learning,16
+764,2941665138,over the air computation via intelligent reflecting surfaces,28
+765,2941859709,pan path integral based convolution for deep graph neural networks,24
+766,2942047809,fake news early detection a theory driven model,30
+767,2942135187,cascademl an automatic neural network architecture evolution and training algorithm for multi label classification,24
+768,2942637361,non rigid structure from motion by rank one basis shapes,16
+769,2942669846,deep ordinal reinforcement learning,24
+770,2942775600,an efficient intelligent system for the classification of electroencephalography eeg brain signals using nuclear features for human cognitive tasks,24
+771,2943913916,joint learning of self representation and indicator for multi view image clustering,16
+772,2944151897,accurate visual localization for automotive applications,16
+773,2944460305,network coding gaps for completion times of multiple unicasts,34
+774,2944855023,a convolutional cost sensitive crack localization algorithm for automated and reliable rc bridge inspection,16
+775,2944983703,temporal attentive alignment for video domain adaptation,16
+776,2945051179,on cycling risk and discomfort urban safety mapping and bike route recommendations,3
+777,2945083850,using deep networks and transfer learning to address disinformation,30
+778,2945584410,combine ppo with nes to improve exploration,24
+779,2945603434,distributed pattern formation in a ring,5
+780,2945692665,a hypergraph based approach for the 4 constraint satisfaction problem tractability,39
+781,2946019926,debiasing word embeddings improves multimodal machine translation,30
+782,2946044191,fibinet combining feature importance and bilinear feature interaction for click through rate prediction,24
+783,2946173551,graph searches and their end vertices,34
+784,2946356375,a survey on the detection of android malicious apps,4
+785,2946555364,parallel genetic algorithm for planning safe and optimal route for ship,13
+786,2946584487,recurring concept meta learning for evolving data streams,24
+787,2946869570,a cross domain transferable neural coherence model,30
+788,2947091137,quantization loss re learning method,24
+789,2947219669,a gender analysis of top scientists collaboration behavior evidence from italy,38
+790,2947221669,task classification model for visual fixation exploration and search,24
+791,2947224127,temporally coherent full 3d mesh human pose recovery from monocular video,16
+792,2947461788,a gram gauss newton method learning overparameterized deep neural networks for regression problems,24
+793,2947477827,coset a benchmark for evaluating neural program embeddings,24
+794,2947715232,inverse boosting pruning trees for depression detection on twitter,24
+795,2947756088,quantifying point prediction uncertainty in neural networks via residual estimation with an i o kernel,24
+796,2948069823,understanding overfitting peaks in generalization error analytical risk curves for l 2 and l 1 penalized interpolation,24
+797,2948281243,object agnostic suction grasp affordance detection in dense cluster using self supervised learning docx,27
+798,2948743095,episodic memory in lifelong language learning,24
+799,2948793189,fast hierarchical neural network for feature learning on point cloud,16
+800,2948930516,reducing the variance in online optimization by transporting past gradients,24
+801,2948954099,unsupervised feature learning with k means and an ensemble of deep convolutional neural networks for medical image classification,16
+802,2948957650,crypto art a decentralized view,3
+803,2949067336,swim a semantic wiki for mathematical knowledge management,38
+804,2949089332,distant supervision relation extraction with intra bag and inter bag attentions,30
+805,2949134419,divide and grow capturing huge diversity in crowd images with incrementally growing cnn,16
+806,2949188824,pain intensity estimation by a self taught selection of histograms of topographical features,16
+807,2949194344,group evolution discovery in social networks,26
+808,2949196298,the greedy spanner is existentially optimal,34
+809,2949207020,binary decision diagrams for bin packing with minimum color fragmentation,34
+810,2949225654,base station selections for qos provisioning over distributed multi user mimo links in wireless networks,28
+811,2949233314,correlation coefficients and semantic textual similarity,30
+812,2949238931,successive synthesis of latent gaussian trees,28
+813,2949267240,asymptotic mmse analysis under sparse representation modeling,28
+814,2949268354,self organized collective motion with a simulated real robot swarm,27
+815,2949285477,an algorithmic comparison of the hyper reduction and the discrete empirical interpolation method for a nonlinear thermal problem,7
+816,2949286181,computationally optimal real resource strategies,10
+817,2949318474,bitcoin meets strong consistency,5
+818,2949321893,de fragmenting the cloud,5
+819,2949324607,lombardi drawings of graphs,20
+820,2949342675,serverless computing one step forward two steps back,5
+821,2949346849,self learning scene specific pedestrian detectors using a progressive latent model,16
+822,2949375452,breaking value symmetry,10
+823,2949403782,correlated resource models of internet end hosts,5
+824,2949419978,algebraic geometry codes with complementary duals exceed the asymptotic gilbert varshamov bound,28
+825,2949429487,minimum weight dynamo and fast opinion spreading,26
+826,2949435980,the closer the better similarity of publication pairs at different co citation levels,38
+827,2949439788,learning the information divergence,24
+828,2949441331,effects of high order co occurrences on word semantic similarities,30
+829,2949461269,misspelling oblivious word embeddings,30
+830,2949482052,efficient and accurate estimation of lipschitz constants for deep neural networks,24
+831,2949487521,distributed analysis and load balancing system for grid enabled analysis on hand held devices using multi agents systems,5
+832,2949510923,provably efficient rl with rich observations via latent state decoding,24
+833,2949521215,learning without concentration,24
+834,2949527639,online voltage stability assessment for load areas based on the holomorphic embedding method,7
+835,2949535701,modanet a large scale street fashion dataset with polygon annotations,16
+836,2949535778,deep recurrent electricity theft detection in ami networks with random tuning of hyper parameters,10
+837,2949560367,an efficient algorithm for factoring polynomials over algebraic extension field,14
+838,2949561737,sophistication vs logical depth,28
+839,2949577591,probability and asset updating using bayesian networks for combinatorial prediction markets,10
+840,2949604932,learning multi level hierarchies with hindsight,10
+841,2949626996,modular networks learning to decompose neural computation,24
+842,2949717756,evolving symbolic controllers,10
+843,2949737549,neobility at semeval 2017 task 1 an attention based sentence similarity model,30
+844,2949758157,dempster s rule for evidence ordered in a complete directed acyclic graph,10
+845,2949764951,conditions under which conditional independence and scoring methods lead to identical selection of bayesian network models,10
+846,2949811668,cd phy physical layer security in wireless networks through constellation diversity,4
+847,2949817159,on board communication based relative localization for collision avoidance in micro air vehicle teams,27
+848,2949835687,even delta matroids and the complexity of planar boolean csps,9
+849,2949835790,generalized spatial modulation in indoor wireless visible light communication,28
+850,2949837236,fast optical flow using dense inverse search,16
+851,2949837559,improved complexity results on k coloring p_t free graphs,9
+852,2949859406,parallel recursive state compression for free,34
+853,2949896890,learning shape abstractions by assembling volumetric primitives,16
+854,2949916381,losing weight by gaining edges,9
+855,2949987032,understanding deep image representations by inverting them,16
+856,2950002111,plug and play decentralized model predictive control,19
+857,2950013303,multi view machines,24
+858,2950047432,space constrained interval selection,34
+859,2950050258,geocoding without geotags a text based approach for reddit,31
+860,2950064107,improved bounds on restricted isometry constants for gaussian matrices,28
+861,2950070519,a survey of blockchain frameworks and applications,3
+862,2950074070,the dilworth number of auto chordal bipartite graphs,39
+863,2950104062,nearly optimal exploration exploitation decision thresholds,10
+864,2950108450,leveraging disease progression learning for medical image recognition,16
+865,2950117535,quality attributes in practice contemporary data,23
+866,2950125130,factorizing lambdamart for cold start recommendations,24
+867,2950134120,fuzzy feedback scheduling of resource constrained embedded control systems,21
+868,2950136222,topsig topology preserving document signatures,31
+869,2950143318,finding small patterns in permutations in linear time,34
+870,2950148443,wireless energy and information transfer in networks with hybrid arq,29
+871,2950155282,tight bounds for lp samplers finding duplicates in streams and related problems,34
+872,2950173087,fairness aware ranking in search recommendation systems with application to linkedin talent search,31
+873,2950203496,distributed interference alignment with low overhead,28
+874,2950222175,detecting redundant css rules in html5 applications a tree rewriting approach,2
+875,2950254397,diverse palindromic factorization is np complete,33
+876,2950256663,temporal graph offset reconstruction towards temporally robust graph representation learning,26
+877,2950257502,growth and duplication of public source code over time provenance tracking at scale,23
+878,2950269186,an improved separation of regular resolution from pool resolution and clause learning,2
+879,2950280607,unsupervised bilingual lexicon induction from mono lingual multimodal data,30
+880,2950298633,measuring personalization of web search,3
+881,2950301741,importance weighted active learning,24
+882,2950339685,global hashing system for fast image search,16
+883,2950354234,optimization over geodesics for exact principal geodesic analysis,20
+884,2950389708,low complexity qos aware coordinated scheduling for heterogenous networks,28
+885,2950394205,dynamic index coding for wireless broadcast networks,28
+886,2950428405,optimal space time codes for the mimo amplify and forward cooperative channel,28
+887,2950428556,the price of anarchy in large games,36
+888,2950430068,expanded combinatorial designs as tool to model network slicing in 5g,8
+889,2950430166,blackbox identity testing for bounded top fanin depth 3 circuits the field doesn t matter,9
+890,2950444534,syndrome decoding of reed solomon codes beyond half the minimum distance based on shift register synthesis,28
+891,2950468997,metrics for finite markov decision processes,10
+892,2950488612,diffusion and superposition distances for signals supported on networks,26
+893,2950502662,algorithmic discrepancy beyond partial coloring,34
+894,2950503198,distributed detection of a non cooperative target via generalized locally optimum approaches,28
+895,2950568883,a message passing approach for joint channel estimation interference mitigation and decoding,28
+896,2950573208,signature generation for sensitive information leakage in android applications,4
+897,2950594207,latent distribution assumption for unbiased and consistent consensus modelling,6
+898,2950595392,perspectroscope a window to the world of diverse perspectives,30
+899,2950606260,conflict anticipation in the search for graph automorphisms,34
+900,2950615092,controller synthesis for discrete time hybrid polynomial systems via occupation measures,19
+901,2950657833,the power of local information in social networks,26
+902,2950662148,provable algorithms for inference in topic models,24
+903,2950669596,multi task classification hypothesis space with improved generalization bounds,24
+904,2950681068,cp decomposition with tensor power method for convolutional neural networks compression,24
+905,2950681618,canonical models and the complexity of modal team logic,2
+906,2950686074,query adaptive hash code ranking for large scale multi view visual search,31
+907,2950700332,how clever is the film model and how clever can it be,30
+908,2950707459,strong equivalence of qualitative optimization problems,2
+909,2950752366,sembed semantic embedding of egocentric action videos,16
+910,2950761086,new approaches for almost sure termination of probabilistic programs,2
+911,2950778660,decomposition of multi agent planning under distributed motion and task ltl specifications,19
+912,2950820003,indexing schemes for similarity search in datasets of short protein fragments,34
+913,2950844289,3d convolutional neural networks for tumor segmentation using long range 2d context,16
+914,2950860667,two hop interference channels impact of linear time varying schemes,28
+915,2950870926,the range of topological effects on communication,9
+916,2950881657,open answer set programming with guarded programs,10
+917,2950894949,polymorphic types in acl2,2
+918,2950925841,on counting untyped lambda terms,2
+919,2950937143,an introduction to deep learning for the physical layer,28
+920,2950938369,output polynomial enumeration on graphs of bounded local linear mim width,34
+921,2950945448,automatic 3d bi ventricular segmentation of cardiac images by a shape constrained multi task deep learning approach,16
+922,2951011721,from artifacts to aggregations modeling scientific life cycles on the semantic web,38
+923,2951017344,tracking large scale video remix in real world events,26
+924,2951036212,randomly removing g handles at once,20
+925,2951102062,parameterized approximation schemes using graph widths,34
+926,2951109409,learnable histogram statistical context features for deep neural networks,16
+927,2951135732,dependent hierarchical normalized random measures for dynamic topic modeling,24
+928,2951137892,compute and forward on a multiaccess relay channel coding and symmetric rate optimization,28
+929,2951152776,sparse recovery with graph constraints fundamental limits and measurement construction,28
+930,2951153814,the polysemy of the words that children learn over time,30
+931,2951170705,basis collapse for holographic algorithms over all domain sizes,9
+932,2951171871,partial conway and iteration semirings,39
+933,2951191840,succinctness of two way probabilistic and quantum finite automata,9
+934,2951198865,anaphora and discourse structure,30
+935,2951208224,benchmarking declarative approximate selection predicates,37
+936,2951210992,verifying a platform for digital imaging a multi tool strategy,23
+937,2951233667,image question answer synergistic network for visual dialog,30
+938,2951246108,data driven identification of a thermal network in multi zone building,19
+939,2951268556,analytical evaluation of fractional frequency reuse for heterogeneous cellular networks,28
+940,2951293704,a scalable asynchronous distributed algorithm for topic modeling,5
+941,2951305674,phased lstm accelerating recurrent network training for long or event based sequences,24
+942,2951312444,unsupervised anomaly detection with generative adversarial networks to guide marker discovery,16
+943,2951313160,semantic autoencoder for zero shot learning,16
+944,2951394629,unified analysis and optimization of d2d communications in cellular networks over fading channels,28
+945,2951399333,neos server 4 0 administrative guide,5
+946,2951448623,semantic stability in social tagging streams,3
+947,2951463487,feasibility of in band full duplex radio transceivers with imperfect rf components analysis and enhanced cancellation algorithms,28
+948,2951478721,bootstrapping structure using similarity,24
+949,2951543836,learning where to attend like a human driver,16
+950,2951571372,the burden of risk aversion in mean risk selfish routing,36
+951,2951595588,unified heat kernel regression for diffusion kernel smoothing and wavelets on manifolds and its application to mandible growth modeling in ct images,16
+952,2951606661,deep feature based face detection on mobile devices,16
+953,2951608625,a sytematic piggybacking design for minimum storage regenerating codes,28
+954,2951614565,local approximation schemes for topology control,34
+955,2951614944,on the intersection of additive perfect codes,28
+956,2951615571,throughput delay analysis of random linear network coding for wireless broadcasting,28
+957,2951616867,convex color image segmentation with optimal transport distances,16
+958,2951635495,provable bounds for learning some deep representations,24
+959,2951635536,planarity of streamed graphs,34
+960,2951636664,kinetic voronoi diagrams and delaunay triangulations under polygonal distance functions,20
+961,2951653434,on the accuracy of the wyner model in cellular networks,28
+962,2951655313,bayesian uncertainty matching for unsupervised domain adaptation,24
+963,2951657789,timeline a dynamic hierarchical dirichlet process model for recovering birth death and evolution of topics in text stream,31
+964,2951673776,three generalizations of the focus constraint,10
+965,2951683535,parallel processing of large graphs,5
+966,2951697703,fast deep matting for portrait animation on mobile phone,16
+967,2951728940,imitation learning with a value based prior,24
+968,2951754036,coalition formation game for cooperative cognitive radio using gibbs sampling,36
+969,2951823902,reconstruction of integers from pairwise distances,39
+970,2951837690,jointly modeling embedding and translation to bridge video and language,16
+971,2951847226,approximation algorithms for generalized mst and tsp in grid clusters,39
+972,2951854335,service oriented communities visions and contributions towards social organizations,3
+973,2951861003,capacity with causal and non causal side information a unified view,28
+974,2951867283,node overlap removal by growing a tree,20
+975,2951884125,using short synchronous wom codes to make wom codes decodable,28
+976,2951910662,models of visually grounded speech signal pay attention to nouns a bilingual experiment on english and japanese,30
+977,2951936753,alchemy a quantum chemistry dataset for benchmarking ai models,24
+978,2951948694,learning sparse neural networks via ell_0 and t ell_1 by a relaxed variable splitting method with application to multi scale curve classification,24
+979,2951995763,development of a sensory neural network for medical diagnosing,13
+980,2951995821,functions definable by numerical set expressions,2
+981,2951996776,free deconvolution for signal processing applications,28
+982,2952016354,secure network in business to business application by using access control list acl and service level agreement sla,4
+983,2952023274,online and stochastic gradient methods for non decomposable loss functions,24
+984,2952044050,bicameral structuring and synthetic imagery for jointly predicting instance boundaries and nearby occlusions from a single image,16
+985,2952047331,successive integer forcing and its sum rate optimality,28
+986,2952061210,broadcast channels with delayed finite rate feedback predict or observe,28
+987,2952073905,completeness of randomized kinodynamic planners with state based steering,27
+988,2952093099,activis visual exploration of industry scale deep neural network models,6
+989,2952102303,learning to segment and represent motion primitives from driving data for motion planning applications,27
+990,2952119352,a deterministic equivalent for the analysis of non gaussian correlated mimo multiple access channels,28
+991,2952155636,balanced allocations and double hashing,34
+992,2952164974,good friends bad news affect and virality in twitter,26
+993,2952169544,a logic framework for p2p deductive databases,2
+994,2952171514,a vertex ordering characterization of simple triangle graphs,39
+995,2952213558,mimicking human process text representation via latent semantic clustering for classification,30
+996,2952219087,the online laboratory conducting experiments in a real labor market,6
+997,2952229801,maximum quadratic assignment problem reduction from maximum label cover and lp based approximation algorithm,9
+998,2952236815,picking apart story salads,30
+999,2952260046,optimal scheduling of electric vehicles charging in low voltage distribution systems,19
