@@ -1,0 +1,32 @@
+2025-06-20 01:08:26,310 - INFO - Starting embedding-based spectral clustering pipeline...
+2025-06-20 01:08:26,311 - INFO - Loading embeddings with labels from ..\embeddings\llama_3.2_3b_embeddings_with_labels_node_ids.npy
+2025-06-20 01:08:26,316 - INFO - Loaded 1000 embeddings
+2025-06-20 01:08:26,317 - INFO - Embedding dimension: 3072
+2025-06-20 01:08:26,317 - INFO - Number of unique classes: 37
+2025-06-20 01:08:26,318 - INFO - Class range: 0 - 39
+2025-06-20 01:08:26,318 - INFO - Creating knn similarity graph...
+2025-06-20 01:08:26,318 - INFO - Initialized similarity graph with 1000 papers
+2025-06-20 01:08:26,318 - INFO - Embedding dimension: 3072
+2025-06-20 01:08:26,319 - INFO - Ground truth classes: 37 unique classes
+2025-06-20 01:08:26,319 - INFO - Creating k-NN similarity graph with k=10
+2025-06-20 01:08:26,609 - INFO - Created k-NN similarity graph
+2025-06-20 01:08:26,612 - INFO - Running spectral clustering...
+2025-06-20 01:08:26,612 - INFO - Initialized spectral clustering with 40 clusters
+2025-06-20 01:08:26,612 - INFO - Fitting spectral clustering...
+2025-06-20 01:08:32,258 - INFO - Spectral clustering completed
+2025-06-20 01:08:32,259 - INFO - Computing silhouette score...
+2025-06-20 01:08:32,420 - INFO - Silhouette score: 0.0209
+2025-06-20 01:08:32,420 - INFO - Computing Adjusted Rand Index...
+2025-06-20 01:08:33,705 - INFO - Adjusted Rand Index: 0.0731
+2025-06-20 01:08:33,711 - INFO - NMI: 0.3727
+2025-06-20 01:08:33,711 - INFO - Homogeneity: 0.4023
+2025-06-20 01:08:33,712 - INFO - Completeness: 0.3471
+2025-06-20 01:08:33,713 - INFO - Computing cosine similarity matrix...
+2025-06-20 01:08:33,746 - INFO - Cosine similarity matrix computed
+2025-06-20 01:08:33,752 - INFO - Creating visualizations...
+2025-06-20 01:08:33,752 - INFO - Creating t-SNE visualization...
+2025-06-20 01:08:44,306 - INFO - t-SNE plot saved to results\text_similarity_clustering\tsne_clusters.png
+2025-06-20 01:08:47,677 - INFO - Confusion matrix saved to results\text_similarity_clustering\confusion_matrix.png
+2025-06-20 01:08:48,411 - INFO - Cluster sizes plot saved to results\text_similarity_clustering\cluster_sizes.png
+2025-06-20 01:08:48,791 - INFO - Evaluation metrics plot saved to results\text_similarity_clustering\evaluation_metrics.png
+2025-06-20 01:08:48,794 - INFO - Clustering pipeline completed successfully!
