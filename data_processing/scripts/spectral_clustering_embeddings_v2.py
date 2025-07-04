@@ -490,7 +490,7 @@ class EmbeddingSpectralClusteringRunner:
                  embeddings_file: str,
                  n_clusters: int = 40,
                  graph_type: str = "knn",
-                 k_neighbors: int = 10,
+                 k_neighbors: int = 20,
                  epsilon: float = 0.7,
                  output_dir: str = "results/text_similarity_clustering",
                  random_state: int = 42):
@@ -711,7 +711,7 @@ def main():
     parser.add_argument(
         "--k-neighbors",
         type=int,
-        default=10,
+        default=20,
         help="Number of neighbors for k-NN graph"
     )
     parser.add_argument(

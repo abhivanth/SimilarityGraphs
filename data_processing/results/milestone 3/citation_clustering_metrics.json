@@ -1,0 +1,7 @@
+{
+  "adjusted_rand_index": 0.004164127587459394,
+  "silhouette_score": null,
+  "n_clusters_true": 40,
+  "n_clusters_predicted": 40,
+  "n_nodes": 100000
+}

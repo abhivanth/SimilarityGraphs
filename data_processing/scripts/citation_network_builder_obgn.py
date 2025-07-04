@@ -133,118 +133,12 @@ class OGBArxivLoader:
             self.paper_titles = {}
 
     def get_paper_title(self, paper_id: str) -> str:
-        """Get paper title from local data or API"""
-        # First check if we have it locally
+        # check if we have it locally
         if paper_id in self.paper_titles:
             return self.paper_titles[paper_id]
 
-        # If not, try to fetch from Semantic Scholar API
-        title = self.fetch_title_from_semantic_scholar(paper_id)
-        if title and title != "Unknown Title":
-            # Cache it for future use
-            self.paper_titles[paper_id] = title
-            return title
-
-        # Fallback to MAG API
-        title = self.fetch_title_from_mag_api(paper_id)
-        if title and title != "Unknown Title":
-            self.paper_titles[paper_id] = title
-            return title
-
         # Ultimate fallback
         return f"Paper {paper_id}"
-
-    def fetch_title_from_semantic_scholar(self, mag_paper_id: str) -> str:
-        """Fetch paper title from Semantic Scholar API using MAG ID"""
-        url = f"https://api.semanticscholar.org/graph/v1/paper/MAG:{mag_paper_id}"
-        headers = {
-            'User-Agent': 'Academic Research Tool (contact: researcher@university.edu)'
-        }
-
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                title = data.get('title', 'Unknown Title')
-                if title and title.strip():
-                    return title.strip()
-        except Exception as e:
-            print(f"Error fetching from Semantic Scholar for MAG:{mag_paper_id}: {e}")
-
-        return "Unknown Title"
-
-    def fetch_title_from_mag_api(self, mag_paper_id: str) -> str:
-        """Fetch paper title from Microsoft Academic Graph API"""
-        # Note: MAG API was discontinued, but keeping this as template
-        # for other potential APIs
-        try:
-            # This is a placeholder - MAG API is no longer available
-            # You could implement other academic APIs here
-            return "Unknown Title"
-        except Exception as e:
-            print(f"Error fetching from MAG API for {mag_paper_id}: {e}")
-            return "Unknown Title"
-
-    def fetch_arxiv_metadata(self, arxiv_id: str) -> Dict:
-        """
-        Fetch paper metadata from arXiv API
-        """
-        # Clean the arXiv ID if it's in the format "node_xxx"
-        if arxiv_id.startswith("node_"):
-            # For demonstration, we'll create dummy data
-            # In practice, you'd need actual arXiv IDs
-            return {
-                'title': f'Paper Title for {arxiv_id}',
-                'abstract': f'Abstract for {arxiv_id}',
-                'categories': 'cs.LG'
-            }
-
-        url = f"http://export.arxiv.org/api/query?id_list={arxiv_id}"
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                # Parse XML response (simplified)
-                # In practice, you'd use xml.etree.ElementTree
-                return {
-                    'title': 'Fetched Title',
-                    'abstract': 'Fetched Abstract',
-                    'categories': 'cs.LG'
-                }
-        except Exception as e:
-            print(f"Error fetching {arxiv_id}: {e}")
-
-        return {
-            'title': f'Unknown Title for {arxiv_id}',
-            'abstract': 'Unknown Abstract',
-            'categories': 'cs.OH'
-        }
-
-    def fetch_semantic_scholar_metadata(self, paper_id: str) -> Dict:
-        """
-        Alternative: Fetch metadata from Semantic Scholar API
-        """
-        url = f"https://api.semanticscholar.org/graph/v1/paper/arXiv:{paper_id}"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; research-bot/1.0)'
-        }
-
-        try:
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                return {
-                    'title': data.get('title', 'Unknown Title'),
-                    'abstract': data.get('abstract', 'Unknown Abstract'),
-                    'categories': 'cs.LG'  # Default category
-                }
-        except Exception as e:
-            print(f"Error fetching from Semantic Scholar {paper_id}: {e}")
-
-        return {
-            'title': f'Unknown Title for {paper_id}',
-            'abstract': 'Unknown Abstract',
-            'categories': 'cs.OH'
-        }
 
     def create_nodes_csv(self, output_file: str = "ogbn_arxiv_nodes.csv"):
         """
@@ -267,9 +161,10 @@ class OGBArxivLoader:
         labels = self.data.y.squeeze()
 
         nodes_data = []
+        titles_found = 0
 
         for i, node_idx in enumerate(node_indices):
-            if i % 50 == 0:
+            if i % 1000 == 0:  # Changed from 50 to 1000 for less verbose output
                 print(f"Processing node {i + 1}/{len(node_indices)}")
 
             # Get label
@@ -283,25 +178,22 @@ class OGBArxivLoader:
             if mag_paper_id:
                 title = self.get_paper_title(str(mag_paper_id))
                 paper_id = f"MAG:{mag_paper_id}"
+
+                # Count titles found in local data
+                if not title.startswith("Paper_"):
+                    titles_found += 1
             else:
                 title = f"Paper for Node {node_idx}"
                 paper_id = f"node_{node_idx}"
-
-            # Get publication year if available
-            year = None
-            if hasattr(self.data, 'node_year') and self.data.node_year is not None:
-                year = self.data.node_year[node_idx].item()
 
             nodes_data.append({
                 'node_id': node_idx,
                 'mag_paper_id': mag_paper_id,
                 'title': title,
-               'class_idx': label_idx,
+                'class_idx': label_idx,
+                'class_label': class_label,
+                'paper_id': paper_id
             })
-
-            # Rate limiting for API calls
-            if mag_paper_id and str(mag_paper_id) not in self.paper_titles:
-                time.sleep(0.1)  # Be respectful to APIs
 
         # Create DataFrame
         df = pd.DataFrame(nodes_data)
@@ -314,13 +206,10 @@ class OGBArxivLoader:
         print("\nDataset Statistics:")
         print(f"Total nodes: {len(df)}")
         print(f"Nodes with MAG IDs: {df['mag_paper_id'].notna().sum()}")
-        print(f"Nodes with fetched titles: {df['title'].str.startswith('Paper for Node').sum() == 0}")
+        print(f"Titles found in local data: {titles_found}")
 
         print("\nClass distribution:")
-        #print(df['class_label'].value_counts().head(10))
-
-        # if year:
-        #     print(f"\nYear range: {df['publication_year'].min()} - {df['publication_year'].max()}")
+        print(df['class_label'].value_counts().head(10))
 
         return df
 
@@ -376,8 +265,8 @@ if __name__ == "__main__":
     output_dir = "../data/processed"
     os.makedirs(output_dir, exist_ok=True)
 
-    # Initialize loader
-    loader = OGBArxivLoader(num_nodes=1000)
+    # Initialize loader // total nodes in ogbn arxiv = 169,343
+    loader = OGBArxivLoader(num_nodes=100000)
 
     # Load dataset and create nodes CSV with real paper data
     print("Loading OGB arXiv dataset and creating nodes CSV...")
