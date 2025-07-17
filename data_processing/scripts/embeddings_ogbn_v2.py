@@ -18,12 +18,12 @@ MODEL_CONFIGS = {
     # LLaMA models
     "llama-3.2-3b": "meta-llama/Llama-3.2-3B",
     "llama-3.1-3b": "meta-llama/Llama-3.1-3B",
-    "llama-3.3-70b": "meta-llama/Llama-3.3-70B",
+    "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
     "llama-2-7b": "meta-llama/Llama-2-7b-hf",
 
     # Qwen models
     "qwen-3.3-32b": "Qwen/Qwen2.5-32B",
-    "qwen-2.5-7b": "Qwen/Qwen2.5-7B",
+    "qwen-2.5-7b": "Qwen/Qwen2.5-7B-Instruct",
 
     # DeepSeek models
     "deepseek-qwen-32b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",

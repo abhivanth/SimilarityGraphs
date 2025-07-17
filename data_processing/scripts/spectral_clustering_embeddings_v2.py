@@ -3,7 +3,6 @@ import pandas as pd
 from sklearn.cluster import SpectralClustering
 from sklearn.metrics import silhouette_score, adjusted_rand_score
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
@@ -11,6 +10,17 @@ import logging
 import json
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
+import gc
+import psutil
+import os
+from scipy import sparse
+
+
+def log_memory_usage(step_name: str):
+    """Log current memory usage."""
+    process = psutil.Process(os.getpid())
+    memory_mb = process.memory_info().rss / 1024 / 1024
+    logging.info(f"[MEMORY] {step_name}: {memory_mb:.1f} MB")
 
 
 class EmbeddingSimilarityGraph:
@@ -36,18 +46,25 @@ class EmbeddingSimilarityGraph:
         if class_labels is not None:
             logging.info(f"Ground truth classes: {len(set(class_labels))} unique classes")
 
+        log_memory_usage("After initialization")
+
     def compute_cosine_similarity(self) -> np.ndarray:
         """Compute cosine similarity matrix between all embeddings."""
         logging.info("Computing cosine similarity matrix...")
+        log_memory_usage("Before similarity computation")
+
         self.similarity_matrix = cosine_similarity(self.embeddings)
+
+        log_memory_usage("After similarity computation")
         logging.info("Cosine similarity matrix computed")
         return self.similarity_matrix
 
-    def get_knn_similarity_graph(self, k: int = 10) -> np.ndarray:
-        """Get k-NN similarity graph to save memory."""
+    def get_knn_similarity_graph(self, k: int = 10) -> sparse.csr_matrix:
+        """Get k-NN similarity graph as sparse matrix to save memory."""
         from sklearn.neighbors import NearestNeighbors
 
         logging.info(f"Creating k-NN similarity graph with k={k}")
+        log_memory_usage("Before k-NN computation")
 
         # Use NearestNeighbors to find k nearest neighbors efficiently
         nbrs = NearestNeighbors(n_neighbors=k + 1, metric='cosine', n_jobs=-1)
@@ -59,66 +76,120 @@ class EmbeddingSimilarityGraph:
         # Convert distances to similarities (cosine distance = 1 - cosine similarity)
         similarities = 1 - distances
 
-        # Create sparse affinity matrix
-        from scipy.sparse import lil_matrix
-        affinity_matrix = lil_matrix((self.n_papers, self.n_papers))
+        # Create sparse affinity matrix directly
+        row_indices = []
+        col_indices = []
+        data = []
 
         for i in range(self.n_papers):
             for j_idx in range(1, k + 1):  # Skip first (self)
                 neighbor_idx = indices[i, j_idx]
                 similarity = similarities[i, j_idx]
-                # Make symmetric
-                affinity_matrix[i, neighbor_idx] = max(0, similarity)
-                affinity_matrix[neighbor_idx, i] = max(0, similarity)
+                if similarity > 0:  # Only store positive similarities
+                    # Make symmetric
+                    row_indices.extend([i, neighbor_idx])
+                    col_indices.extend([neighbor_idx, i])
+                    data.extend([similarity, similarity])
 
-        # Convert to dense for spectral clustering
-        dense_matrix = affinity_matrix.toarray()
-        logging.info("Created k-NN similarity graph")
-        return dense_matrix
-
-    def get_epsilon_similarity_graph(self, epsilon: float = 0.7) -> np.ndarray:
-        """Get epsilon-neighborhood similarity graph."""
-        if self.similarity_matrix is None:
-            self.compute_cosine_similarity()
-
-        logging.info(f"Creating epsilon-neighborhood graph with ε={epsilon}")
-
-        # Create binary adjacency matrix based on threshold
-        affinity_matrix = np.where(self.similarity_matrix >= epsilon,
-                                   self.similarity_matrix, 0)
+        # Create sparse matrix
+        affinity_matrix = sparse.csr_matrix(
+            (data, (row_indices, col_indices)),
+            shape=(self.n_papers, self.n_papers)
+        )
 
         # Ensure diagonal is 1 (self-similarity)
-        np.fill_diagonal(affinity_matrix, 1.0)
+        affinity_matrix.setdiag(1.0)
 
-        # Count edges
-        n_edges = np.count_nonzero(affinity_matrix) - self.n_papers  # Subtract diagonal
-        logging.info(f"Created epsilon-neighborhood graph with {n_edges} edges")
+        # Clean up intermediate variables
+        del nbrs, distances, indices, similarities
+        del row_indices, col_indices, data
+        gc.collect()
 
+        log_memory_usage("After k-NN graph creation")
+        logging.info(f"Created sparse k-NN similarity graph with {affinity_matrix.nnz} non-zero entries")
         return affinity_matrix
 
-    def get_full_similarity_graph(self) -> np.ndarray:
-        """Get full similarity graph (all pairwise similarities)."""
+    def get_epsilon_similarity_graph(self, epsilon: float = 0.7) -> sparse.csr_matrix:
+        """Get epsilon-neighborhood similarity graph as sparse matrix."""
+        logging.info(f"Creating epsilon-neighborhood graph with ε={epsilon}")
+        log_memory_usage("Before epsilon graph computation")
+
+        # Compute similarities in chunks to avoid full matrix
+        chunk_size = min(1000, self.n_papers)
+        row_indices = []
+        col_indices = []
+        data = []
+
+        for i in range(0, self.n_papers, chunk_size):
+            end_i = min(i + chunk_size, self.n_papers)
+            chunk_embeddings = self.embeddings[i:end_i]
+
+            # Compute similarities for this chunk
+            chunk_similarities = cosine_similarity(chunk_embeddings, self.embeddings)
+
+            # Find entries above threshold
+            rows, cols = np.where(chunk_similarities >= epsilon)
+
+            # Adjust row indices for chunk offset
+            rows += i
+
+            # Store non-zero entries
+            for r, c in zip(rows, cols):
+                if chunk_similarities[r - i, c] >= epsilon:
+                    row_indices.append(r)
+                    col_indices.append(c)
+                    data.append(chunk_similarities[r - i, c])
+
+            # Clean up chunk
+            del chunk_embeddings, chunk_similarities
+            gc.collect()
+
+        # Create sparse matrix
+        affinity_matrix = sparse.csr_matrix(
+            (data, (row_indices, col_indices)),
+            shape=(self.n_papers, self.n_papers)
+        )
+
+        # Clean up intermediate variables
+        del row_indices, col_indices, data
+        gc.collect()
+
+        log_memory_usage("After epsilon graph creation")
+        logging.info(f"Created sparse epsilon-neighborhood graph with {affinity_matrix.nnz} non-zero entries")
+        return affinity_matrix
+
+    def get_full_similarity_graph(self) -> sparse.csr_matrix:
+        """Get full similarity graph as sparse matrix (threshold very low values)."""
         if self.similarity_matrix is None:
             self.compute_cosine_similarity()
 
+        logging.info("Creating full similarity graph")
+        log_memory_usage("Before full graph creation")
+
+        # Convert to sparse by thresholding very small values
+        threshold = 0.01  # Remove very small similarities to save memory
+        similarity_sparse = sparse.csr_matrix(
+            np.where(self.similarity_matrix >= threshold, self.similarity_matrix, 0)
+        )
+
         # Convert similarity to affinity (ensure positive values)
-        affinity_matrix = (self.similarity_matrix + 1) / 2  # Scale to [0, 1]
-        logging.info("Created full similarity graph")
-        return affinity_matrix
+        similarity_sparse.data = (similarity_sparse.data + 1) / 2  # Scale to [0, 1]
+
+        # Clean up dense matrix
+        del self.similarity_matrix
+        self.similarity_matrix = None
+        gc.collect()
+
+        log_memory_usage("After full graph creation")
+        logging.info(f"Created sparse full similarity graph with {similarity_sparse.nnz} non-zero entries")
+        return similarity_sparse
 
     def get_graph_statistics(self, graph_type: str = "knn") -> Dict[str, Any]:
         """Get statistics about the similarity graph."""
-        if self.similarity_matrix is None:
-            self.compute_cosine_similarity()
-
         stats = {
             'n_papers': self.n_papers,
             'embedding_dim': self.embeddings.shape[1],
-            'graph_type': graph_type,
-            'mean_similarity': float(np.mean(self.similarity_matrix)),
-            'std_similarity': float(np.std(self.similarity_matrix)),
-            'min_similarity': float(np.min(self.similarity_matrix)),
-            'max_similarity': float(np.max(self.similarity_matrix))
+            'graph_type': graph_type
         }
 
         if self.class_labels is not None:
@@ -148,26 +219,35 @@ class SpectralClusteringPipeline:
 
         logging.info(f"Initialized spectral clustering with {n_clusters} clusters")
 
-    def fit_predict(self, affinity_matrix: np.ndarray) -> np.ndarray:
+    def fit_predict(self, affinity_matrix: sparse.csr_matrix) -> np.ndarray:
         """
         Fit spectral clustering and predict clusters.
 
         Args:
-            affinity_matrix: Precomputed affinity matrix
+            affinity_matrix: Precomputed sparse affinity matrix
 
         Returns:
             Cluster labels
         """
         logging.info("Fitting spectral clustering...")
+        log_memory_usage("Before spectral clustering")
+
+        # Aggressive memory cleanup before clustering
+        gc.collect()
 
         self.clustering_model = SpectralClustering(
             n_clusters=self.n_clusters,
             affinity='precomputed',
+            eigen_solver='lobpcg',  # More memory efficient
+            assign_labels='kmeans',  # Keep for quality
             random_state=self.random_state,
-            n_jobs=-1
+            n_jobs=1,  # Avoid parallel memory overhead,
+            verbose = True
         )
 
         self.cluster_labels = self.clustering_model.fit_predict(affinity_matrix)
+
+        log_memory_usage("After spectral clustering")
         logging.info("Spectral clustering completed")
 
         return self.cluster_labels
@@ -188,6 +268,7 @@ class SpectralClusteringPipeline:
             raise ValueError("Must fit clustering first")
 
         metrics = {}
+        log_memory_usage("Before evaluation")
 
         # Silhouette Score
         logging.info("Computing silhouette score...")
@@ -198,7 +279,7 @@ class SpectralClusteringPipeline:
         # Adjusted Rand Index (if ground truth available)
         if ground_truth_labels is not None:
             logging.info("Computing Adjusted Rand Index...")
-            self.plot_distribution_comparison(ground_truth_labels,self.cluster_labels)
+            self.plot_distribution_comparison(ground_truth_labels, self.cluster_labels)
             self.ari_score = adjusted_rand_score(ground_truth_labels, self.cluster_labels)
             metrics['adjusted_rand_index'] = self.ari_score
             logging.info(f"Adjusted Rand Index: {self.ari_score:.4f}")
@@ -214,6 +295,7 @@ class SpectralClusteringPipeline:
             logging.info(f"Homogeneity: {metrics['homogeneity_score']:.4f}")
             logging.info(f"Completeness: {metrics['completeness_score']:.4f}")
 
+        log_memory_usage("After evaluation")
         return metrics
 
     def plot_distribution_comparison(self, ground_truth_labels, predicted_labels,
@@ -225,8 +307,8 @@ class SpectralClusteringPipeline:
             ground_truth_labels: Array of ground truth class labels
             predicted_labels: Array of predicted cluster labels
             title: Plot title
-            save_path: Optional path to save the plot
         """
+        log_memory_usage("Before distribution plot")
 
         # Get distributions
         gt_unique, gt_counts = np.unique(ground_truth_labels, return_counts=True)
@@ -271,13 +353,17 @@ class SpectralClusteringPipeline:
         plt.suptitle(title, fontsize=14, fontweight='bold')
         plt.tight_layout()
 
-        # Save or show plot
+        # Save plot
         save_path = "results/text_similarity_clustering/comparison.png"
-        if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
-            print(f"Distribution comparison plot saved to {save_path}")
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Distribution comparison plot saved to {save_path}")
 
         plt.close()
+
+        # Clean up
+        del fig, ax1, ax2, bars1, bars2
+        gc.collect()
+        log_memory_usage("After distribution plot")
 
     def analyze_cluster_purity(self, ground_truth_labels: np.ndarray) -> Dict[str, Any]:
         """Analyze cluster purity against ground truth."""
@@ -343,62 +429,13 @@ class ClusteringVisualizer:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def plot_tsne_clusters(self,
-                           embeddings: np.ndarray,
-                           cluster_labels: np.ndarray,
-                           ground_truth_labels: Optional[np.ndarray] = None,
-                           title: str = "t-SNE Visualization of Clusters",
-                           save_name: str = "tsne_clusters.png") -> None:
-        """
-        Create t-SNE visualization of clusters with optional ground truth comparison.
-        """
-        logging.info("Creating t-SNE visualization...")
-
-        # Compute t-SNE
-        tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, len(embeddings) // 4))
-        embeddings_2d = tsne.fit_transform(embeddings)
-
-        # Create subplots
-        if ground_truth_labels is not None:
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
-
-            # Predicted clusters
-            scatter1 = ax1.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1],
-                                   c=cluster_labels, cmap='tab10', alpha=0.7)
-            ax1.set_title(f"{title} - Predicted Clusters")
-            ax1.set_xlabel('t-SNE Component 1')
-            ax1.set_ylabel('t-SNE Component 2')
-            plt.colorbar(scatter1, ax=ax1)
-
-            # Ground truth
-            scatter2 = ax2.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1],
-                                   c=ground_truth_labels, cmap='tab20', alpha=0.7)
-            ax2.set_title(f"{title} - Ground Truth Classes")
-            ax2.set_xlabel('t-SNE Component 1')
-            ax2.set_ylabel('t-SNE Component 2')
-            plt.colorbar(scatter2, ax=ax2)
-        else:
-            plt.figure(figsize=(12, 8))
-            scatter = plt.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1],
-                                  c=cluster_labels, cmap='tab10', alpha=0.7)
-            plt.colorbar(scatter)
-            plt.title(title)
-            plt.xlabel('t-SNE Component 1')
-            plt.ylabel('t-SNE Component 2')
-
-        # Save plot
-        save_path = self.output_dir / save_name
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.close()
-
-        logging.info(f"t-SNE plot saved to {save_path}")
-
     def plot_confusion_matrix(self,
                               ground_truth: np.ndarray,
                               predicted: np.ndarray,
                               title: str = "Clustering vs Ground Truth",
                               save_name: str = "confusion_matrix.png") -> None:
         """Plot confusion matrix between predicted clusters and ground truth."""
+        log_memory_usage("Before confusion matrix")
 
         # Create confusion matrix
         df_confusion = pd.crosstab(ground_truth, predicted, margins=True)
@@ -418,7 +455,12 @@ class ClusteringVisualizer:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()
 
+        # Clean up
+        del df_confusion, confusion_subset
+        gc.collect()
+
         logging.info(f"Confusion matrix saved to {save_path}")
+        log_memory_usage("After confusion matrix")
 
     def plot_cluster_sizes(self,
                            cluster_info: Dict[str, Any],
@@ -542,6 +584,7 @@ class EmbeddingSpectralClusteringRunner:
     def load_embeddings_with_labels(self):
         """Load embeddings with class labels from .npy file."""
         logging.info(f"Loading embeddings with labels from {self.embeddings_file}")
+        log_memory_usage("Before loading embeddings")
 
         embeddings_path = Path(self.embeddings_file)
         if not embeddings_path.exists():
@@ -549,11 +592,16 @@ class EmbeddingSpectralClusteringRunner:
 
         # Load the .npy file: [embedding_dims, node_id, class_idx]
         data = np.load(self.embeddings_file)
+        log_memory_usage("After loading .npy file")
 
         # Extract components
         self.embeddings = data[:, :-2]  # All columns except last two
         self.node_ids = data[:, -2].astype(int).tolist()  # Second to last column
         self.class_labels = data[:, -1].astype(int)  # Last column
+
+        # Clean up original data
+        del data
+        gc.collect()
 
         logging.info(f"Loaded {len(self.embeddings)} embeddings")
         logging.info(f"Embedding dimension: {self.embeddings.shape[1]}")
@@ -564,9 +612,12 @@ class EmbeddingSpectralClusteringRunner:
         assert len(self.embeddings) == len(self.node_ids) == len(self.class_labels), \
             "Mismatch in data lengths"
 
+        log_memory_usage("After loading embeddings")
+
     def run_clustering(self) -> Dict[str, Any]:
         """Run complete clustering pipeline with evaluation."""
         logging.info("Starting embedding-based spectral clustering pipeline...")
+        log_memory_usage("Pipeline start")
 
         # Load embeddings with labels
         self.load_embeddings_with_labels()
@@ -587,6 +638,10 @@ class EmbeddingSpectralClusteringRunner:
         else:
             raise ValueError(f"Unknown graph type: {self.graph_type}")
 
+        # Clean up similarity graph object to save memory
+        del self.similarity_graph.similarity_matrix
+        gc.collect()
+
         # Run spectral clustering
         logging.info("Running spectral clustering...")
         self.clustering_pipeline = SpectralClusteringPipeline(
@@ -595,6 +650,11 @@ class EmbeddingSpectralClusteringRunner:
         )
 
         cluster_labels = self.clustering_pipeline.fit_predict(affinity_matrix)
+
+        # Clean up affinity matrix
+        del affinity_matrix
+        gc.collect()
+        log_memory_usage("After clustering")
 
         # Evaluate clustering
         metrics = self.clustering_pipeline.evaluate_clustering(
@@ -608,16 +668,8 @@ class EmbeddingSpectralClusteringRunner:
         graph_stats = self.similarity_graph.get_graph_statistics(self.graph_type)
         cluster_info = self.clustering_pipeline.get_cluster_info()
 
-        # Create visualizations
+        # Create visualizations (skip t-SNE)
         logging.info("Creating visualizations...")
-
-        # t-SNE visualization
-        self.visualizer.plot_tsne_clusters(
-            self.embeddings,
-            cluster_labels,
-            self.class_labels,
-            title=f"t-SNE: {self.graph_type.upper()} Similarity Graph Clustering"
-        )
 
         # Confusion matrix
         self.visualizer.plot_confusion_matrix(
@@ -660,10 +712,11 @@ class EmbeddingSpectralClusteringRunner:
         # Save results
         self.print_results_formatted(results)
 
+        log_memory_usage("Pipeline end")
         logging.info("Clustering pipeline completed successfully!")
         return results
 
-    def print_results_formatted(self,results_clustering : dict):
+    def print_results_formatted(self, results_clustering: dict):
         print("=" * 60)
         print("SPECTRAL CLUSTERING RESULTS")
         print("=" * 60)
@@ -723,13 +776,18 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="results/text_similarity_clustering")
+        default="results/text_similarity_clustering",
+        help="Output directory for results"
+    )
 
     args = parser.parse_args()
 
     runner = EmbeddingSpectralClusteringRunner(
         embeddings_file=args.embeddings_file,
         n_clusters=args.n_clusters,
+        graph_type=args.graph_type,
+        k_neighbors=args.k_neighbors,
+        epsilon=args.epsilon,
         output_dir=args.output_dir
     )
 
@@ -744,6 +802,7 @@ def main():
     print(f"Number of papers: {results['n_papers']}")
     print(f"Results saved to: {args.output_dir}")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

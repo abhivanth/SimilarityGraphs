@@ -10,3 +10,6 @@
 .idea/
 .xml
 data_processing/.env
+data_processing/scripts/dataset/*
+data_processing/embeddings/*
+data_processing/*
