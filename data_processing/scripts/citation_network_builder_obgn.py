@@ -37,13 +37,14 @@ class OGBArxivLoader:
     def load_label_mapping(self):
         """Load the label to arXiv category mapping from the dataset"""
         dataset_root = self.dataset.root
-        mapping_file = os.path.join(dataset_root, 'mapping', 'labelidx2arxivcategory.csv.gz')
+        mapping_file = os.path.join(os.getcwd(),dataset_root, 'mapping', 'labelidx2arxivcategeory.csv.gz').replace('\\', '/')
+        print(f"os.path.exists(str_path): {os.path.exists(mapping_file)}")
 
         print(f"Loading label mapping from: {mapping_file}")
 
         try:
             # Load the compressed CSV file
-            with gzip.open(mapping_file, 'rt') as f:
+            with gzip.open(str(mapping_file), 'rt', encoding='utf-8') as f:
                 mapping_df = pd.read_csv(f)
 
             # Create dictionary mapping from label index to arXiv category
