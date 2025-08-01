@@ -242,7 +242,7 @@ class SpectralClusteringPipeline:
             assign_labels='kmeans',  # Keep for quality
             random_state=self.random_state,
             n_jobs=1,  # Avoid parallel memory overhead,
-            verbose = True
+            verbose=True
         )
 
         self.cluster_labels = self.clustering_model.fit_predict(affinity_matrix)
@@ -399,6 +399,141 @@ class SpectralClusteringPipeline:
         }
 
         return purity_stats
+
+    def analyze_cluster_composition(self, ground_truth_labels: np.ndarray) -> Dict[str, Any]:
+        """
+        Analyze the composition of each cluster - which class labels are present.
+
+        Args:
+            ground_truth_labels: Array of ground truth class labels
+
+        Returns:
+            Dictionary with detailed cluster composition analysis
+        """
+        if self.cluster_labels is None or ground_truth_labels is None:
+            raise ValueError("Must have both cluster labels and ground truth")
+
+        logging.info("Analyzing cluster composition...")
+
+        cluster_composition = {}
+        unique_clusters = np.unique(self.cluster_labels)
+        unique_classes = np.unique(ground_truth_labels)
+
+        # Create detailed composition for each cluster
+        for cluster_id in unique_clusters:
+            cluster_mask = self.cluster_labels == cluster_id
+            cluster_ground_truth = ground_truth_labels[cluster_mask]
+
+            # Count each class in this cluster
+            class_counts = {}
+            for class_label in unique_classes:
+                count = np.sum(cluster_ground_truth == class_label)
+                if count > 0:
+                    class_counts[int(class_label)] = int(count)
+
+            # Calculate percentages
+            total_in_cluster = len(cluster_ground_truth)
+            class_percentages = {class_id: (count / total_in_cluster) * 100
+                                 for class_id, count in class_counts.items()}
+
+            cluster_composition[int(cluster_id)] = {
+                'total_papers': total_in_cluster,
+                'class_counts': class_counts,
+                'class_percentages': class_percentages,
+                'num_different_classes': len(class_counts),
+                'dominant_class': max(class_counts.items(), key=lambda x: x[1])[0] if class_counts else None,
+                'dominant_class_percentage': max(class_percentages.values()) if class_percentages else 0
+            }
+
+        # Create summary statistics
+        summary_stats = {
+            'total_clusters': len(unique_clusters),
+            'total_classes': len(unique_classes),
+            'avg_classes_per_cluster': np.mean([comp['num_different_classes']
+                                                for comp in cluster_composition.values()]),
+            'avg_dominant_class_percentage': np.mean([comp['dominant_class_percentage']
+                                                      for comp in cluster_composition.values()]),
+            'clusters_with_single_class': sum(1 for comp in cluster_composition.values()
+                                              if comp['num_different_classes'] == 1),
+            'clusters_with_multiple_classes': sum(1 for comp in cluster_composition.values()
+                                                  if comp['num_different_classes'] > 1)
+        }
+
+        # Print detailed analysis
+        self._print_cluster_composition_analysis(cluster_composition, summary_stats)
+
+        # Save to CSV for detailed analysis
+        self._save_cluster_composition_to_csv(cluster_composition)
+
+        composition_analysis = {
+            'cluster_composition': cluster_composition,
+            'summary_statistics': summary_stats
+        }
+
+        logging.info("Cluster composition analysis completed")
+        return composition_analysis
+
+    def _print_cluster_composition_analysis(self, cluster_composition: Dict, summary_stats: Dict):
+        """Print detailed cluster composition analysis."""
+        print("\n" + "=" * 80)
+        print("CLUSTER COMPOSITION ANALYSIS")
+        print("=" * 80)
+
+        print(f"Total clusters: {summary_stats['total_clusters']}")
+        print(f"Total classes: {summary_stats['total_classes']}")
+        print(f"Average classes per cluster: {summary_stats['avg_classes_per_cluster']:.2f}")
+        print(f"Average dominant class percentage: {summary_stats['avg_dominant_class_percentage']:.1f}%")
+        print(f"Clusters with single class: {summary_stats['clusters_with_single_class']}")
+        print(f"Clusters with multiple classes: {summary_stats['clusters_with_multiple_classes']}")
+
+        print("\n" + "-" * 80)
+        print("DETAILED CLUSTER BREAKDOWN")
+        print("-" * 80)
+
+        for cluster_id in sorted(cluster_composition.keys()):
+            comp = cluster_composition[cluster_id]
+            print(f"\nCluster {cluster_id} ({comp['total_papers']} papers):")
+            print(f"  Classes present: {comp['num_different_classes']}")
+            print(f"  Dominant class: {comp['dominant_class']} ({comp['dominant_class_percentage']:.1f}%)")
+
+            # Show top 3 classes in this cluster
+            sorted_classes = sorted(comp['class_counts'].items(), key=lambda x: x[1], reverse=True)
+            print("  Class distribution:")
+            for class_id, count in sorted_classes[:3]:  # Show top 3
+                percentage = comp['class_percentages'][class_id]
+                print(f"    Class {class_id}: {count} papers ({percentage:.1f}%)")
+
+            if len(sorted_classes) > 3:
+                print(f"    ... and {len(sorted_classes) - 3} more classes")
+
+    def _save_cluster_composition_to_csv(self, cluster_composition: Dict):
+        """Save detailed cluster composition to CSV file."""
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs("results/text_similarity_clustering", exist_ok=True)
+
+            # Prepare data for CSV
+            csv_data = []
+            for cluster_id, comp in cluster_composition.items():
+                for class_id, count in comp['class_counts'].items():
+                    csv_data.append({
+                        'cluster_id': cluster_id,
+                        'class_id': class_id,
+                        'paper_count': count,
+                        'percentage_in_cluster': comp['class_percentages'][class_id],
+                        'total_cluster_size': comp['total_papers'],
+                        'is_dominant_class': (class_id == comp['dominant_class'])
+                    })
+
+            # Save to CSV
+            df = pd.DataFrame(csv_data)
+            csv_path = "results/text_similarity_clustering/cluster_composition_detailed.csv"
+            df.to_csv(csv_path, index=False)
+            logging.info(f"Detailed cluster composition saved to {csv_path}")
+            print(f"Detailed cluster composition saved to {csv_path}")
+
+        except Exception as e:
+            logging.warning(f"Could not save cluster composition to CSV: {e}")
 
     def get_cluster_info(self) -> Dict[str, Any]:
         """Get information about the clustering results."""
@@ -664,6 +799,9 @@ class EmbeddingSpectralClusteringRunner:
         # Analyze cluster purity
         purity_analysis = self.clustering_pipeline.analyze_cluster_purity(self.class_labels)
 
+        # NEW: Analyze cluster composition (which class labels are in each cluster)
+        composition_analysis = self.clustering_pipeline.analyze_cluster_composition(self.class_labels)
+
         # Get results
         graph_stats = self.similarity_graph.get_graph_statistics(self.graph_type)
         cluster_info = self.clustering_pipeline.get_cluster_info()
@@ -706,6 +844,7 @@ class EmbeddingSpectralClusteringRunner:
             'graph_statistics': graph_stats,
             'cluster_info': cluster_info,
             'purity_analysis': purity_analysis,
+            'composition_analysis': composition_analysis,  # NEW: Added composition analysis
             'timestamp': datetime.now().isoformat()
         }
 
@@ -734,6 +873,12 @@ class EmbeddingSpectralClusteringRunner:
         purity = results_clustering['purity_analysis']
         print(f"  Mean purity: {purity['mean_purity']:.4f}")
         print(f"  Max purity: {purity['max_purity']:.4f}")
+
+        print(f"\nCOMPOSITION SUMMARY:")
+        composition = results_clustering['composition_analysis']['summary_statistics']
+        print(f"  Clusters with single class: {composition['clusters_with_single_class']}")
+        print(f"  Clusters with multiple classes: {composition['clusters_with_multiple_classes']}")
+        print(f"  Average classes per cluster: {composition['avg_classes_per_cluster']:.2f}")
         print("=" * 60)
 
 

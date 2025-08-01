@@ -35,13 +35,14 @@ MODEL_CONFIGS = {
 class CUDAOptimizedEmbeddingGenerator:
     """CUDA-optimized embedding generator for citation network papers."""
 
-    def __init__(self, model_name: str = "llama-3.2-3b", device: Optional[str] = None):
+    def __init__(self, model_name: str = "llama-3.2-3b", device: Optional[str] = None, embedding_mode: str = "title"):
         """
         Initialize CUDA-optimized embedding generator.
 
         Args:
             model_name: Model identifier (key from MODEL_CONFIGS or HuggingFace model ID)
             device: Device to use ('cuda', 'cpu', or None for auto-detect)
+            embedding_mode: What to embed ('title', 'abstract', 'authors', 'combined', 'title_abstract')
         """
         # Setup logging first
         logging.basicConfig(level=logging.INFO)
@@ -50,6 +51,7 @@ class CUDAOptimizedEmbeddingGenerator:
         # Resolve model name
         self.model_name = MODEL_CONFIGS.get(model_name, model_name)
         self.model_type = self._detect_model_type(self.model_name)
+        self.embedding_mode = embedding_mode
 
         self.device = self._setup_device(device)
         self.tokenizer = None
@@ -57,7 +59,7 @@ class CUDAOptimizedEmbeddingGenerator:
 
         # CUDA optimization settings
         self.use_cuda = self.device == "cuda"
-        self.mixed_precision = self.use_cuda  # Enable mixed precision for CUDA
+        self.mixed_precision = self.use_cuda
 
         # Memory optimization settings
         self.max_batch_size = self._get_optimal_batch_size()
@@ -69,9 +71,9 @@ class CUDAOptimizedEmbeddingGenerator:
 
         self.logger.info(f"Initialized with model: {self.model_name}")
         self.logger.info(f"Model type: {self.model_type}")
+        self.logger.info(f"Embedding mode: {self.embedding_mode}")
         self.logger.info(f"Device: {self.device}")
         self.logger.info(f"CUDA optimizations: {self.use_cuda}")
-        self.logger.info(f"Mixed precision: {self.mixed_precision}")
 
     def _detect_model_type(self, model_name: str) -> str:
         """Detect model type based on model name."""
@@ -84,30 +86,37 @@ class CUDAOptimizedEmbeddingGenerator:
         else:
             return 'auto'
 
+    def _setup_device(self, device: Optional[str]) -> str:
+        """Setup computation device with CUDA optimizations."""
+        if device:
+            return device
+
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            memory_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+            self.logger.info(f"CUDA available: {gpu_name} ({memory_gb:.1f}GB)")
+            return "cuda"
+        else:
+            self.logger.info("CUDA not available, using CPU")
+            return "cpu"
+
     def _setup_cuda_optimizations(self):
         """Setup CUDA-specific optimizations."""
         if not self.use_cuda:
             return
 
-        # Set CUDA memory management
         torch.cuda.empty_cache()
 
-        # Enable memory efficient attention if available
         try:
             torch.backends.cuda.enable_flash_sdp(True)
             self.logger.info("✓ Flash Attention enabled")
         except:
             self.logger.info("Flash Attention not available")
 
-        # Set memory fraction to avoid OOM
         if torch.cuda.is_available():
-            # Use 90% of GPU memory, leave 10% for other processes
             torch.cuda.set_per_process_memory_fraction(0.9)
 
-        # Enable cudnn benchmarking for consistent input sizes
         torch.backends.cudnn.benchmark = True
-
-        # Set optimal tensor core usage
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
 
@@ -119,20 +128,17 @@ class CUDAOptimizedEmbeddingGenerator:
             return 8
 
         try:
-            # Get GPU memory info
             total_memory = torch.cuda.get_device_properties(0).total_memory
             memory_gb = total_memory / (1024 ** 3)
 
-            # Adaptive batch size based on GPU memory
-            if memory_gb >= 40:  # A100/H100 class
+            if memory_gb >= 40:
                 return 32
-            elif memory_gb >= 20:  # RTX 4090/3090 class
+            elif memory_gb >= 20:
                 return 16
-            elif memory_gb >= 10:  # RTX 3080/4070 class
+            elif memory_gb >= 10:
                 return 12
-            else:  # Smaller GPUs
+            else:
                 return 8
-
         except:
             return 8
 
@@ -147,21 +153,36 @@ class CUDAOptimizedEmbeddingGenerator:
             except Exception as e:
                 self.logger.warning(f"Authentication failed: {e}")
 
-    def _setup_device(self, device: Optional[str]) -> str:
-        """Setup computation device with CUDA optimizations."""
-        if device:
-            return device
+    def combine_text_fields(self, title: str, abstract: str, authors: str) -> str:
+        """Combine title, abstract, and authors based on embedding mode."""
+        # Clean and prepare each field
+        title = str(title) if title and not pd.isna(title) else ""
+        abstract = str(abstract) if abstract and not pd.isna(abstract) else ""
+        authors = str(authors) if authors and not pd.isna(authors) else ""
 
-        if torch.cuda.is_available():
-            # Check CUDA capability
-            gpu_name = torch.cuda.get_device_name(0)
-            memory_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
-
-            self.logger.info(f"CUDA available: {gpu_name} ({memory_gb:.1f}GB)")
-            return "cuda"
+        if self.embedding_mode == "title":
+            return title
+        elif self.embedding_mode == "abstract":
+            return abstract
+        elif self.embedding_mode == "authors":
+            return authors
+        elif self.embedding_mode == "title_abstract":
+            combined = f"{title}"
+            if abstract:
+                combined += f" {abstract}"
+            return combined
+        elif self.embedding_mode == "combined":
+            # Combine all fields with separators
+            combined = f"{title}"
+            if abstract:
+                combined += f" [ABSTRACT] {abstract}"
+            if authors:
+                combined += f" [AUTHORS] {authors}"
+            return combined
         else:
-            self.logger.info("CUDA not available, using CPU")
-            return "cpu"
+            # Default to title if unknown mode
+            self.logger.warning(f"Unknown embedding mode '{self.embedding_mode}', using title")
+            return title
 
     def load_model(self) -> None:
         """Load tokenizer and model with CUDA optimizations."""
@@ -173,7 +194,7 @@ class CUDAOptimizedEmbeddingGenerator:
             self.tokenizer = AutoTokenizer.from_pretrained(
                 self.model_name,
                 trust_remote_code=True,
-                use_fast=True  # Use fast tokenizer for better performance
+                use_fast=True
             )
 
             # Add padding token if not present
@@ -183,13 +204,12 @@ class CUDAOptimizedEmbeddingGenerator:
             # Load model with CUDA optimizations
             model_kwargs = {
                 'trust_remote_code': True,
-                'low_cpu_mem_usage': True,  # Reduce CPU memory usage during loading
+                'low_cpu_mem_usage': True,
             }
 
             if self.use_cuda:
                 model_kwargs.update({
-                    'torch_dtype': torch.float16,  # Use half precision
-                    'device_map': 'auto',  # Auto device mapping
+                    'torch_dtype': torch.float16
                 })
             else:
                 model_kwargs['torch_dtype'] = torch.float32
@@ -199,11 +219,9 @@ class CUDAOptimizedEmbeddingGenerator:
                 self.model = AutoModel.from_pretrained(self.model_name, **model_kwargs)
             elif self.model_type == 'causal-lm':
                 self.model = AutoModelForCausalLM.from_pretrained(self.model_name, **model_kwargs)
-                # Use base model for embeddings
                 if hasattr(self.model, 'base_model'):
                     self.model = self.model.base_model
             else:
-                # Auto-detect
                 try:
                     self.model = AutoModel.from_pretrained(self.model_name, **model_kwargs)
                 except:
@@ -217,9 +235,17 @@ class CUDAOptimizedEmbeddingGenerator:
 
             self.model.eval()
 
-            # Move to device if not already there
-            if not self.use_cuda or not hasattr(self.model, 'device_map'):
-                self.model.to(self.device)
+            if self.use_cuda:
+                try:
+                    self.model = self.model.to(self.device)
+                except RuntimeError as e:
+                    if "meta tensor" in str(e):
+                        self.logger.info("Using to_empty() for meta tensor compatibility")
+                        self.model = self.model.to_empty(device=self.device)
+                    else:
+                        raise e
+            else:
+                self.model = self.model.to(self.device)
 
             self.logger.info("✓ Model loaded successfully")
 
@@ -234,16 +260,7 @@ class CUDAOptimizedEmbeddingGenerator:
             raise
 
     def generate_embeddings_batch(self, texts: List[str], batch_size: int = None) -> np.ndarray:
-        """
-        Generate embeddings with CUDA optimizations.
-
-        Args:
-            texts: List of input texts
-            batch_size: Batch size for processing (auto-determined if None)
-
-        Returns:
-            Array of embeddings
-        """
+        """Generate embeddings with CUDA optimizations."""
         if batch_size is None:
             batch_size = self.max_batch_size
 
@@ -272,7 +289,7 @@ class CUDAOptimizedEmbeddingGenerator:
                         truncation=True,
                         max_length=512,
                         return_attention_mask=True,
-                        return_token_type_ids=False  # Save memory
+                        return_token_type_ids=False
                     )
 
                     # Move to device efficiently
@@ -318,15 +335,13 @@ class CUDAOptimizedEmbeddingGenerator:
 
         return np.vstack(embeddings)
 
-    def load_ogbn_arxiv_data(self, nodes_csv_path: str) -> Tuple[pd.DataFrame, List[str], List[int], List, List[int]]:
+    def load_ogbn_arxiv_data(self, nodes_csv_path: str) -> Tuple[
+        pd.DataFrame, List[str], List[int], List, List[int], List[str], List[str]]:
         """
-        Load OGBN-ArXiv nodes data with memory optimization.
-
-        Args:
-            nodes_csv_path: Path to the ogbn_arxiv_nodes.csv file
+        Load OGBN-ArXiv nodes data with title, abstract, and authors.
 
         Returns:
-            Tuple of (dataframe, titles, node_ids, mag_paper_ids, class_indices)
+            Tuple of (dataframe, combined_texts, node_ids, mag_paper_ids, class_indices, abstracts, authors)
         """
         self.logger.info(f"Loading OGBN-ArXiv data from {nodes_csv_path}")
 
@@ -341,169 +356,54 @@ class CUDAOptimizedEmbeddingGenerator:
             raise ValueError(f"Missing columns in CSV: {missing_columns}")
 
         self.logger.info(f"Loaded {len(df)} papers from OGBN-ArXiv dataset")
+        self.logger.info(f"Available columns: {list(df.columns)}")
 
         # Memory optimization: convert to appropriate dtypes
         df['node_id'] = df['node_id'].astype('int32')
         df['class_idx'] = df['class_idx'].astype('int16')
-
-        # Handle MAG paper IDs
         df['mag_paper_id'] = pd.to_numeric(df['mag_paper_id'], errors='coerce')
 
         # Basic statistics
         self.logger.info(f"Number of unique classes: {df['class_idx'].nunique()}")
         self.logger.info(f"Class range: {df['class_idx'].min()} - {df['class_idx'].max()}")
 
-        # Handle missing titles efficiently
+        # Handle missing data
         missing_titles = df['title'].isna().sum()
-        if missing_titles > 0:
-            self.logger.warning(f"Found {missing_titles} papers with missing titles")
-            df['title'] = df['title'].fillna("Missing title")
+        missing_abstracts = df['abstract'].isna().sum() if 'abstract' in df.columns else len(df)
+        missing_authors = df['authors'].isna().sum() if 'authors' in df.columns else len(df)
+
+        self.logger.info(
+            f"Missing data - Titles: {missing_titles}, Abstracts: {missing_abstracts}, Authors: {missing_authors}")
+
+        # Fill missing values
+        df['title'] = df['title'].fillna("Missing title")
+        df['abstract'] = df['abstract'].fillna("") if 'abstract' in df.columns else ""
+        df['authors'] = df['authors'].fillna("") if 'authors' in df.columns else ""
+
+        # Combine text fields based on embedding mode
+        self.logger.info(f"Combining text fields using mode: {self.embedding_mode}")
+        combined_texts = []
+
+        for _, row in df.iterrows():
+            combined_text = self.combine_text_fields(
+                title=row['title'],
+                abstract=row.get('abstract', ''),
+                authors=row.get('authors', '')
+            )
+            combined_texts.append(combined_text)
 
         # Extract data as lists for memory efficiency
-        titles = df['title'].tolist()
         node_ids = df['node_id'].tolist()
         mag_paper_ids = df['mag_paper_id'].tolist()
         class_indices = df['class_idx'].tolist()
+        abstracts = df['abstract'].tolist() if 'abstract' in df.columns else [''] * len(df)
+        authors = df['authors'].tolist() if 'authors' in df.columns else [''] * len(df)
 
-        return df, titles, node_ids, mag_paper_ids, class_indices
+        # Log text statistics
+        avg_text_length = np.mean([len(text) for text in combined_texts])
+        self.logger.info(f"Average combined text length: {avg_text_length:.0f} characters")
 
-    def process_ogbn_arxiv_data(self,
-                                nodes_csv: str = "../data/processed/ogbn_arxiv_nodes.csv",
-                                output_dir: str = "../embeddings",
-                                batch_size: int = None,
-                                include_class_labels: bool = True,
-                                use_mag_ids: bool = True,
-                                save_intermediate: bool = True) -> Dict[str, Any]:
-        """
-        Process OGBN-ArXiv citation network data with CUDA optimizations.
-
-        Args:
-            nodes_csv: Path to ogbn_arxiv_nodes.csv file
-            output_dir: Directory to save embeddings
-            batch_size: Batch size for processing (auto-determined if None)
-            include_class_labels: Whether to include class labels in output
-            use_mag_ids: Whether to use MAG paper IDs (True) or node IDs (False) as identifiers
-            save_intermediate: Whether to save intermediate results
-
-        Returns:
-            Dictionary with embedding info
-        """
-        # Use optimal batch size if not specified
-        if batch_size is None:
-            batch_size = self.max_batch_size
-
-        # Load OGBN-ArXiv data
-        df, titles, node_ids, mag_paper_ids, class_indices = self.load_ogbn_arxiv_data(nodes_csv)
-
-        self.logger.info(f"Processing {len(titles)} OGBN-ArXiv papers")
-        self.logger.info(f"Using batch size: {batch_size}")
-        self.logger.info(f"Using {'MAG paper IDs' if use_mag_ids else 'node indices'} as identifiers")
-
-        # Generate embeddings for titles
-        embeddings = self.generate_embeddings_batch(titles, batch_size)
-
-        # Create embeddings with class labels if requested
-        if include_class_labels:
-            embeddings_with_labels = self.create_embeddings_with_labels(
-                embeddings, class_indices, mag_paper_ids, node_ids, use_mag_ids
-            )
-        else:
-            embeddings_with_labels = embeddings
-
-        # Prepare output directory
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
-
-        # Create model-specific filename
-        model_short_name = self.model_name.split('/')[-1].lower().replace('-', '_')
-
-        # Save embeddings as numpy array
-        if include_class_labels:
-            id_suffix = "mag_ids" if use_mag_ids else "node_ids"
-            embeddings_file = output_path / f"{model_short_name}_embeddings_with_labels_{id_suffix}.npy"
-        else:
-            embeddings_file = output_path / f"{model_short_name}_embeddings.npy"
-
-        # Save with memory optimization
-        np.save(embeddings_file, embeddings_with_labels.astype(np.float32))
-        self.logger.info(f"Saved embeddings to {embeddings_file}")
-
-        # Save detailed CSV only if requested (memory intensive)
-        if save_intermediate:
-            self._save_detailed_csv(embeddings, embeddings_with_labels, titles, node_ids,
-                                    mag_paper_ids, class_indices, output_path, model_short_name,
-                                    include_class_labels, use_mag_ids)
-
-        # Save metadata
-        metadata = {
-            'model': self.model_name,
-            'num_papers': len(node_ids),
-            'embedding_dim': embeddings.shape[1],
-            'num_classes': len(set(class_indices)),
-            'class_range': f"{min(class_indices)}-{max(class_indices)}",
-            'device': self.device,
-            'batch_size': batch_size,
-            'include_labels': include_class_labels,
-            'use_mag_ids': use_mag_ids,
-            'identifier_type': 'mag_paper_id' if use_mag_ids else 'node_id',
-            'output_shape': embeddings_with_labels.shape,
-            'missing_mag_ids': sum(1 for x in mag_paper_ids if x is None or pd.isna(x)),
-            'cuda_optimized': self.use_cuda,
-            'mixed_precision': self.mixed_precision
-        }
-
-        # Print summary
-        self._print_summary(metadata, embeddings_with_labels, output_path, include_class_labels, use_mag_ids)
-
-        return {
-            'embeddings_file': str(embeddings_file),
-            'metadata': metadata,
-            'shape': embeddings_with_labels.shape,
-            'embedding_dim': embeddings.shape[1],
-            'num_classes': len(set(class_indices)),
-            'identifier_type': 'mag_paper_id' if use_mag_ids else 'node_id'
-        }
-
-    def _save_detailed_csv(self, embeddings, embeddings_with_labels, titles, node_ids,
-                           mag_paper_ids, class_indices, output_path, model_short_name,
-                           include_class_labels, use_mag_ids):
-        """Save detailed CSV with memory optimization."""
-        try:
-            if include_class_labels:
-                identifier_col = 'mag_paper_id' if use_mag_ids else 'node_id'
-
-                # Create CSV in chunks to save memory
-                csv_file = output_path / f"{model_short_name}_embeddings_with_metadata_{identifier_col}.csv"
-
-                # Save header
-                embedding_cols = [f'dim_{i}' for i in range(embeddings.shape[1])]
-                header = ['node_id', 'mag_paper_id', 'class_idx', 'title'] + embedding_cols
-
-                with open(csv_file, 'w') as f:
-                    f.write(','.join(header) + '\n')
-
-                # Write in chunks
-                chunk_size = 1000
-                for i in range(0, len(titles), chunk_size):
-                    end_idx = min(i + chunk_size, len(titles))
-                    chunk_data = []
-
-                    for j in range(i, end_idx):
-                        row = [
-                                  node_ids[j],
-                                  mag_paper_ids[j] if mag_paper_ids[j] is not None else '',
-                                  class_indices[j],
-                                  f'"{titles[j]}"'  # Quote titles to handle commas
-                              ] + embeddings[j].tolist()
-                        chunk_data.append(','.join(map(str, row)))
-
-                    with open(csv_file, 'a') as f:
-                        f.write('\n'.join(chunk_data) + '\n')
-
-                self.logger.info(f"Saved detailed CSV to {csv_file}")
-
-        except Exception as e:
-            self.logger.warning(f"Could not save detailed CSV: {e}")
+        return df, combined_texts, node_ids, mag_paper_ids, class_indices, abstracts, authors
 
     def create_embeddings_with_labels(self, embeddings: np.ndarray, class_indices: List[int],
                                       mag_paper_ids: List, node_ids: List[int] = None,
@@ -541,19 +441,104 @@ class CUDAOptimizedEmbeddingGenerator:
 
         return embeddings_with_labels
 
+    def process_ogbn_arxiv_data(self,
+                                nodes_csv: str = "../data/processed/ogbn_arxiv_nodes.csv",
+                                output_dir: str = "../embeddings",
+                                batch_size: int = None,
+                                include_class_labels: bool = True,
+                                use_mag_ids: bool = True,
+                                save_intermediate: bool = True) -> Dict[str, Any]:
+        """Process OGBN-ArXiv citation network data with CUDA optimizations."""
+
+        # Use optimal batch size if not specified
+        if batch_size is None:
+            batch_size = self.max_batch_size
+
+        # Load OGBN-ArXiv data
+        df, combined_texts, node_ids, mag_paper_ids, class_indices, abstracts, authors = self.load_ogbn_arxiv_data(
+            nodes_csv)
+
+        self.logger.info(f"Processing {len(combined_texts)} OGBN-ArXiv papers")
+        self.logger.info(f"Using batch size: {batch_size}")
+        self.logger.info(f"Using {'MAG paper IDs' if use_mag_ids else 'node indices'} as identifiers")
+        self.logger.info(f"Embedding mode: {self.embedding_mode}")
+
+        # Generate embeddings for combined texts
+        embeddings = self.generate_embeddings_batch(combined_texts, batch_size)
+
+        # Create embeddings with class labels if requested
+        if include_class_labels:
+            embeddings_with_labels = self.create_embeddings_with_labels(
+                embeddings, class_indices, mag_paper_ids, node_ids, use_mag_ids
+            )
+        else:
+            embeddings_with_labels = embeddings
+
+        # Prepare output directory
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Create model-specific filename with embedding mode
+        model_short_name = self.model_name.split('/')[-1].lower().replace('-', '_')
+
+        # Save embeddings as numpy array
+        if include_class_labels:
+            id_suffix = "mag_ids" if use_mag_ids else "node_ids"
+            embeddings_file = output_path / f"{model_short_name}_{self.embedding_mode}_embeddings_with_labels_{id_suffix}.npy"
+        else:
+            embeddings_file = output_path / f"{model_short_name}_{self.embedding_mode}_embeddings.npy"
+
+        # Save with memory optimization
+        np.save(embeddings_file, embeddings_with_labels.astype(np.float32))
+        self.logger.info(f"Saved embeddings to {embeddings_file}")
+
+        # Save metadata
+        metadata = {
+            'model': self.model_name,
+            'embedding_mode': self.embedding_mode,
+            'num_papers': len(node_ids),
+            'embedding_dim': embeddings.shape[1],
+            'num_classes': len(set(class_indices)),
+            'class_range': f"{min(class_indices)}-{max(class_indices)}",
+            'device': self.device,
+            'batch_size': batch_size,
+            'include_labels': include_class_labels,
+            'use_mag_ids': use_mag_ids,
+            'identifier_type': 'mag_paper_id' if use_mag_ids else 'node_id',
+            'output_shape': embeddings_with_labels.shape,
+            'missing_mag_ids': sum(1 for x in mag_paper_ids if x is None or pd.isna(x)),
+            'cuda_optimized': self.use_cuda,
+            'mixed_precision': self.mixed_precision,
+            'avg_text_length': np.mean([len(text) for text in combined_texts])
+        }
+
+        # Print summary
+        self._print_summary(metadata, embeddings_with_labels, output_path, include_class_labels, use_mag_ids)
+
+        return {
+            'embeddings_file': str(embeddings_file),
+            'metadata': metadata,
+            'shape': embeddings_with_labels.shape,
+            'embedding_dim': embeddings.shape[1],
+            'num_classes': len(set(class_indices)),
+            'identifier_type': 'mag_paper_id' if use_mag_ids else 'node_id',
+            'embedding_mode': self.embedding_mode
+        }
+
     def _print_summary(self, metadata, embeddings_with_labels, output_path, include_class_labels, use_mag_ids):
         """Print generation summary."""
         self.logger.info("\n" + "=" * 50)
         self.logger.info("CUDA-OPTIMIZED EMBEDDING GENERATION SUMMARY")
         self.logger.info("=" * 50)
         self.logger.info(f"Model: {metadata['model']}")
+        self.logger.info(f"Embedding mode: {metadata['embedding_mode']}")
         self.logger.info(f"Device: {metadata['device']}")
         self.logger.info(f"CUDA optimizations: {metadata['cuda_optimized']}")
-        self.logger.info(f"Mixed precision: {metadata['mixed_precision']}")
         self.logger.info(f"Batch size: {metadata['batch_size']}")
         self.logger.info(f"Papers processed: {metadata['num_papers']}")
         self.logger.info(f"Embedding dimension: {metadata['embedding_dim']}")
         self.logger.info(f"Number of classes: {metadata['num_classes']}")
+        self.logger.info(f"Average text length: {metadata['avg_text_length']:.0f} chars")
         self.logger.info(f"Identifier type: {'MAG paper ID' if use_mag_ids else 'Node ID'}")
 
         if include_class_labels:
@@ -577,6 +562,9 @@ def main():
 
     parser = argparse.ArgumentParser(description="Generate CUDA-optimized embeddings for OGBN-ArXiv")
     parser.add_argument("--model", type=str, default="llama-3.2-3b", help="Model name")
+    parser.add_argument("--embedding-mode", type=str, default="title",
+                        choices=["title", "abstract", "authors", "title_abstract", "combined"],
+                        help="What to embed: title, abstract, authors, title_abstract, or combined")
     parser.add_argument("--batch-size", type=int, default=None, help="Batch size (auto-determined if None)")
     parser.add_argument("--device", type=str, default=None, help="Device to use (cuda/cpu)")
     parser.add_argument("--nodes-csv", type=str, default="../data/processed/ogbn_arxiv_nodes.csv",
@@ -591,7 +579,8 @@ def main():
     # Initialize CUDA-optimized generator
     generator = CUDAOptimizedEmbeddingGenerator(
         model_name=args.model,
-        device=args.device
+        device=args.device,
+        embedding_mode=args.embedding_mode
     )
 
     # Load model
@@ -611,6 +600,7 @@ def main():
     print("CUDA-OPTIMIZED EMBEDDING GENERATION COMPLETE!")
     print("=" * 60)
     print(f"Model: {result['metadata']['model']}")
+    print(f"Embedding mode: {result['embedding_mode']}")
     print(f"Shape: {result['shape']}")
     print(f"Saved to: {result['embeddings_file']}")
     print("=" * 60)

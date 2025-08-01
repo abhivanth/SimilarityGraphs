@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.sparse import csr_matrix
 import warnings
+import argparse
+import os
+import json
 
 warnings.filterwarnings('ignore')
 
@@ -224,7 +227,7 @@ class CitationNetworkClustering:
 
         return metrics
 
-    def analyze_cluster_composition(self, result_df):
+    def analyze_cluster_composition(self, result_df, output_dir=None):
         """Analyze how well clusters match ground truth classes"""
         print("\nAnalyzing cluster composition...")
 
@@ -259,7 +262,153 @@ class CitationNetworkClustering:
         print(f"  Best cluster purity: {purity_df['purity'].max():.4f}")
         print(f"  Worst cluster purity: {purity_df['purity'].min():.4f}")
 
-        return confusion_matrix, purity_df
+        # NEW: Detailed cluster composition analysis
+        composition_analysis = self.analyze_detailed_cluster_composition(result_df)
+
+        # Save composition analysis with output directory
+        if output_dir:
+            self._save_cluster_composition_to_csv(
+                composition_analysis['cluster_composition'],
+                output_dir
+            )
+
+        return confusion_matrix, purity_df, composition_analysis
+
+    def analyze_detailed_cluster_composition(self, result_df):
+        """
+        Comprehensive analysis of which class labels are present in each cluster.
+        Similar to the embedding clustering analysis.
+
+        Args:
+            result_df: DataFrame with clustering results including 'cluster_id' and 'class_idx'
+
+        Returns:
+            Dictionary with detailed cluster composition analysis
+        """
+        print("\n" + "=" * 80)
+        print("DETAILED CLUSTER COMPOSITION ANALYSIS")
+        print("=" * 80)
+
+        unique_clusters = sorted(result_df['cluster_id'].unique())
+        unique_classes = sorted(result_df['class_idx'].unique())
+
+        cluster_composition = {}
+
+        # Create detailed composition for each cluster
+        for cluster_id in unique_clusters:
+            cluster_data = result_df[result_df['cluster_id'] == cluster_id]
+
+            # Count each class in this cluster
+            class_counts = {}
+            for class_label in unique_classes:
+                count = (cluster_data['class_idx'] == class_label).sum()
+                if count > 0:
+                    class_counts[int(class_label)] = int(count)
+
+            # Calculate percentages
+            total_in_cluster = len(cluster_data)
+            class_percentages = {class_id: (count / total_in_cluster) * 100
+                                 for class_id, count in class_counts.items()}
+
+            cluster_composition[int(cluster_id)] = {
+                'total_papers': total_in_cluster,
+                'class_counts': class_counts,
+                'class_percentages': class_percentages,
+                'num_different_classes': len(class_counts),
+                'dominant_class': max(class_counts.items(), key=lambda x: x[1])[0] if class_counts else None,
+                'dominant_class_percentage': max(class_percentages.values()) if class_percentages else 0
+            }
+
+        # Create summary statistics
+        summary_stats = {
+            'total_clusters': len(unique_clusters),
+            'total_classes': len(unique_classes),
+            'avg_classes_per_cluster': np.mean([comp['num_different_classes']
+                                                for comp in cluster_composition.values()]),
+            'avg_dominant_class_percentage': np.mean([comp['dominant_class_percentage']
+                                                      for comp in cluster_composition.values()]),
+            'clusters_with_single_class': sum(1 for comp in cluster_composition.values()
+                                              if comp['num_different_classes'] == 1),
+            'clusters_with_multiple_classes': sum(1 for comp in cluster_composition.values()
+                                                  if comp['num_different_classes'] > 1)
+        }
+
+        # Print detailed analysis
+        self._print_cluster_composition_analysis(cluster_composition, summary_stats)
+
+        # Save to CSV for detailed analysis
+        self._save_cluster_composition_to_csv(cluster_composition)
+
+        composition_analysis = {
+            'cluster_composition': cluster_composition,
+            'summary_statistics': summary_stats
+        }
+
+        return composition_analysis
+
+    def _print_cluster_composition_analysis(self, cluster_composition: dict, summary_stats: dict):
+        """Print detailed cluster composition analysis."""
+        print(f"Total clusters: {summary_stats['total_clusters']}")
+        print(f"Total classes: {summary_stats['total_classes']}")
+        print(f"Average classes per cluster: {summary_stats['avg_classes_per_cluster']:.2f}")
+        print(f"Average dominant class percentage: {summary_stats['avg_dominant_class_percentage']:.1f}%")
+        print(f"Clusters with single class: {summary_stats['clusters_with_single_class']}")
+        print(f"Clusters with multiple classes: {summary_stats['clusters_with_multiple_classes']}")
+
+        print("\n" + "-" * 80)
+        print("DETAILED CLUSTER BREAKDOWN")
+        print("-" * 80)
+
+        for cluster_id in sorted(cluster_composition.keys()):
+            comp = cluster_composition[cluster_id]
+            print(f"\nCluster {cluster_id} ({comp['total_papers']} papers):")
+            print(f"  Classes present: {comp['num_different_classes']}")
+            print(f"  Dominant class: {comp['dominant_class']} ({comp['dominant_class_percentage']:.1f}%)")
+
+            # Show top 5 classes in this cluster
+            sorted_classes = sorted(comp['class_counts'].items(), key=lambda x: x[1], reverse=True)
+            print("  Class distribution:")
+            for class_id, count in sorted_classes[:5]:  # Show top 5
+                percentage = comp['class_percentages'][class_id]
+                print(f"    Class {class_id}: {count} papers ({percentage:.1f}%)")
+
+            if len(sorted_classes) > 5:
+                print(f"    ... and {len(sorted_classes) - 5} more classes")
+
+    def _save_cluster_composition_to_csv(self, cluster_composition: dict, output_dir: str = None):
+        """Save detailed cluster composition to CSV file."""
+        try:
+            if output_dir is None:
+                output_dir = "../results/citation_clustering/"
+
+            # Create directory if it doesn't exist
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Prepare data for CSV
+            csv_data = []
+            for cluster_id, comp in cluster_composition.items():
+                for class_id, count in comp['class_counts'].items():
+                    csv_data.append({
+                        'cluster_id': cluster_id,
+                        'class_id': class_id,
+                        'paper_count': count,
+                        'percentage_in_cluster': comp['class_percentages'][class_id],
+                        'total_cluster_size': comp['total_papers'],
+                        'is_dominant_class': (class_id == comp['dominant_class'])
+                    })
+
+            # Save to CSV
+            df = pd.DataFrame(csv_data)
+            csv_path = os.path.join(output_dir, "citation_cluster_composition_detailed.csv")
+            df.to_csv(csv_path, index=False)
+            print(f"Detailed cluster composition saved to {csv_path}")
+
+        except Exception as e:
+            print(f"Warning: Could not save cluster composition to CSV: {e}")
+
+    def _print_detailed_cluster_composition(self, result_df):
+        """Legacy method - now calls the comprehensive analysis"""
+        return self.analyze_detailed_cluster_composition(result_df)
 
     def visualize_results(self, result_df, save_path=None):
         """Create visualizations of clustering results"""
@@ -318,7 +467,6 @@ class CitationNetworkClustering:
         print("=" * 60)
 
         # Create output directory
-        import os
         os.makedirs(output_dir, exist_ok=True)
 
         # 1. Load data
@@ -337,7 +485,7 @@ class CitationNetworkClustering:
         metrics = self.calculate_evaluation_metrics(result_df, cluster_labels)
 
         # 6. Analyze composition
-        confusion_matrix, purity_df = self.analyze_cluster_composition(result_df)
+        confusion_matrix, purity_df, composition_analysis = self.analyze_cluster_composition(result_df, output_dir)
 
         # 7. Visualize results
         if save_results:
@@ -346,15 +494,17 @@ class CitationNetworkClustering:
         else:
             self.visualize_results(result_df)
 
+        # Store results with composition analysis
+        metrics['composition_analysis'] = composition_analysis
+
         # 8. Save results
         if save_results:
             # Save clustered data
             result_path = os.path.join(output_dir, "citation_clustering_results.csv")
             result_df.to_csv(result_path, index=False)
 
-            # Save metrics
+            # Save metrics (including composition analysis)
             metrics_path = os.path.join(output_dir, "citation_clustering_metrics.json")
-            import json
             with open(metrics_path, 'w') as f:
                 json.dump(metrics, f, indent=2)
 
@@ -368,22 +518,62 @@ class CitationNetworkClustering:
         print("ANALYSIS COMPLETE!")
         print("=" * 60)
 
-        return result_df, metrics, confusion_matrix, purity_df
+        return result_df, metrics, confusion_matrix, purity_df, composition_analysis
 
 
-# Usage example
-if __name__ == "__main__":
+def main():
+    """Main function with command line argument parsing"""
+    parser = argparse.ArgumentParser(description="Run spectral clustering on citation networks")
+
+    parser.add_argument(
+        "--nodes-csv",
+        type=str,
+        required=True,
+        help="Path to nodes CSV file"
+    )
+    parser.add_argument(
+        "--edges-csv",
+        type=str,
+        required=True,
+        help="Path to edges CSV file"
+    )
+    parser.add_argument(
+        "--n-clusters",
+        type=int,
+        default=None,
+        help="Number of clusters (default: use number of unique classes)"
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="../results/citation_clustering/",
+        help="Output directory for results"
+    )
+    parser.add_argument(
+        "--random-state",
+        type=int,
+        default=42,
+        help="Random state for reproducibility"
+    )
+    parser.add_argument(
+        "--no-save",
+        action="store_true",
+        help="Don't save results to files"
+    )
+
+    args = parser.parse_args()
+
     # Initialize the clustering analyzer
     analyzer = CitationNetworkClustering(
-        nodes_csv_path="../data/processed/ogbn_arxiv_nodes.csv",
-        edges_csv_path="../data/processed/ogbn_arxiv_edges.csv"
+        nodes_csv_path=args.nodes_csv,
+        edges_csv_path=args.edges_csv
     )
 
     # Run complete analysis
-    results_df, metrics, conf_matrix, purity_df = analyzer.run_complete_analysis(
-        n_clusters=None,  # Use number of true classes
-        save_results=True,
-        output_dir="../results/citation_clustering/"
+    results_df, metrics, conf_matrix, purity_df, composition_analysis = analyzer.run_complete_analysis(
+        n_clusters=args.n_clusters,
+        save_results=not args.no_save,
+        output_dir=args.output_dir
     )
 
     print("\nKey Results for Comparison:")
@@ -391,3 +581,16 @@ if __name__ == "__main__":
     if metrics['silhouette_score'] is not None:
         print(f"Silhouette Score: {metrics['silhouette_score']:.4f}")
     print(f"Average Cluster Purity: {purity_df['purity'].mean():.4f}")
+
+    # Print composition summary
+    comp_summary = composition_analysis['summary_statistics']
+    print(f"\nCluster Composition Summary:")
+    print(f"  Clusters with single class: {comp_summary['clusters_with_single_class']}")
+    print(f"  Clusters with multiple classes: {comp_summary['clusters_with_multiple_classes']}")
+    print(f"  Average classes per cluster: {comp_summary['avg_classes_per_cluster']:.2f}")
+    print(f"  Average dominant class percentage: {comp_summary['avg_dominant_class_percentage']:.1f}%")
+
+
+# Usage example (when called as script)
+if __name__ == "__main__":
+    main()
