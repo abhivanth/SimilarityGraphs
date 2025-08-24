@@ -10,8 +10,26 @@ from huggingface_hub import login
 import os
 import gc
 from dotenv import load_dotenv
+import re
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 load_dotenv()
+
+# Download NLTK data if not present
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    try:
+        nltk.download('punkt')
+    except:
+        nltk.download('punkt_tab')  # For newer NLTK versions
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
 
 # Model configurations
 MODEL_CONFIGS = {
@@ -24,6 +42,8 @@ MODEL_CONFIGS = {
     # Qwen models
     "qwen-3.3-32b": "Qwen/Qwen2.5-32B",
     "qwen-2.5-7b": "Qwen/Qwen2.5-7B-Instruct",
+    "qwen-3-32b-awq": "Qwen/Qwen3-32B-AWQ",
+    "qwen-3-32B-FP8" : "Qwen/Qwen3-32B-FP8",
 
     # DeepSeek models
     "deepseek-qwen-32b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
@@ -35,7 +55,9 @@ MODEL_CONFIGS = {
 class CUDAOptimizedEmbeddingGenerator:
     """CUDA-optimized embedding generator for citation network papers."""
 
-    def __init__(self, model_name: str = "llama-3.2-3b", device: Optional[str] = None, embedding_mode: str = "title"):
+    def __init__(self, model_name: str = "llama-3.2-3b", device: Optional[str] = None,
+                 embedding_mode: str = "title", remove_stopwords: bool = False,
+                 stopwords_lang: str = "english"):
         """
         Initialize CUDA-optimized embedding generator.
 
@@ -43,6 +65,8 @@ class CUDAOptimizedEmbeddingGenerator:
             model_name: Model identifier (key from MODEL_CONFIGS or HuggingFace model ID)
             device: Device to use ('cuda', 'cpu', or None for auto-detect)
             embedding_mode: What to embed ('title', 'abstract', 'authors', 'combined', 'title_abstract')
+            remove_stopwords: Whether to remove stopwords before embedding
+            stopwords_lang: Language for stopwords (default: 'english')
         """
         # Setup logging first
         logging.basicConfig(level=logging.INFO)
@@ -52,6 +76,8 @@ class CUDAOptimizedEmbeddingGenerator:
         self.model_name = MODEL_CONFIGS.get(model_name, model_name)
         self.model_type = self._detect_model_type(self.model_name)
         self.embedding_mode = embedding_mode
+        self.remove_stopwords = remove_stopwords
+        self.stopwords_lang = stopwords_lang
 
         self.device = self._setup_device(device)
         self.tokenizer = None
@@ -69,11 +95,36 @@ class CUDAOptimizedEmbeddingGenerator:
         if self.use_cuda:
             self._setup_cuda_optimizations()
 
+        # Initialize stopwords if needed
+        if self.remove_stopwords:
+            try:
+                self.stop_words = set(stopwords.words(self.stopwords_lang))
+                self.logger.info(f"Initialized stopword removal for language: {self.stopwords_lang}")
+                self.logger.info(f"Number of stopwords: {len(self.stop_words)}")
+            except Exception as e:
+                self.logger.warning(f"Could not load NLTK stopwords: {e}")
+                self.logger.warning("Using basic English stopwords as fallback")
+                # Fallback to basic stopwords if NLTK fails
+                self.stop_words = {'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you',
+                                   'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself',
+                                   'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them',
+                                   'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this',
+                                   'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been',
+                                   'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing',
+                                   'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until',
+                                   'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between',
+                                   'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to',
+                                   'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again',
+                                   'further', 'then', 'once'}
+        else:
+            self.stop_words = None
+
         self.logger.info(f"Initialized with model: {self.model_name}")
         self.logger.info(f"Model type: {self.model_type}")
         self.logger.info(f"Embedding mode: {self.embedding_mode}")
         self.logger.info(f"Device: {self.device}")
         self.logger.info(f"CUDA optimizations: {self.use_cuda}")
+        self.logger.info(f"Stopword removal: {self.remove_stopwords}")
 
     def _detect_model_type(self, model_name: str) -> str:
         """Detect model type based on model name."""
@@ -153,12 +204,54 @@ class CUDAOptimizedEmbeddingGenerator:
             except Exception as e:
                 self.logger.warning(f"Authentication failed: {e}")
 
+    def remove_stopwords_from_text(self, text: str) -> str:
+        """
+        Remove stopwords from text while preserving structure.
+
+        Args:
+            text: Input text
+
+        Returns:
+            Text with stopwords removed
+        """
+        if not self.remove_stopwords or not text or not self.stop_words:
+            return text
+
+        try:
+            # Try using NLTK tokenizer
+            tokens = word_tokenize(text.lower())
+        except:
+            # Fallback to simple split if NLTK has issues
+            tokens = text.lower().split()
+
+        # Remove stopwords while preserving important punctuation
+        filtered_tokens = []
+        for token in tokens:
+            # Keep the token if it's not a stopword or if it's important punctuation
+            if token not in self.stop_words or token in ['.', ',', ';', ':', '!', '?']:
+                filtered_tokens.append(token)
+
+        # Reconstruct the text
+        filtered_text = ' '.join(filtered_tokens)
+
+        # Clean up spacing around punctuation
+        filtered_text = re.sub(r'\s+([.,;:!?])', r'\1', filtered_text)
+        filtered_text = re.sub(r'\s+', ' ', filtered_text).strip()
+
+        return filtered_text
+
     def combine_text_fields(self, title: str, abstract: str, authors: str) -> str:
         """Combine title, abstract, and authors based on embedding mode."""
         # Clean and prepare each field
         title = str(title) if title and not pd.isna(title) else ""
         abstract = str(abstract) if abstract and not pd.isna(abstract) else ""
         authors = str(authors) if authors and not pd.isna(authors) else ""
+
+        # Apply stopword removal if enabled
+        if self.remove_stopwords:
+            title = self.remove_stopwords_from_text(title)
+            abstract = self.remove_stopwords_from_text(abstract)
+            authors = self.remove_stopwords_from_text(authors)
 
         if self.embedding_mode == "title":
             return title
@@ -382,8 +475,10 @@ class CUDAOptimizedEmbeddingGenerator:
 
         # Combine text fields based on embedding mode
         self.logger.info(f"Combining text fields using mode: {self.embedding_mode}")
-        combined_texts = []
+        if self.remove_stopwords:
+            self.logger.info("Applying stopword removal preprocessing...")
 
+        combined_texts = []
         for _, row in df.iterrows():
             combined_text = self.combine_text_fields(
                 title=row['title'],
@@ -401,7 +496,10 @@ class CUDAOptimizedEmbeddingGenerator:
 
         # Log text statistics
         avg_text_length = np.mean([len(text) for text in combined_texts])
-        self.logger.info(f"Average combined text length: {avg_text_length:.0f} characters")
+        if self.remove_stopwords:
+            self.logger.info(f"Average text length after stopword removal: {avg_text_length:.0f} characters")
+        else:
+            self.logger.info(f"Average combined text length: {avg_text_length:.0f} characters")
 
         return df, combined_texts, node_ids, mag_paper_ids, class_indices, abstracts, authors
 
@@ -462,6 +560,7 @@ class CUDAOptimizedEmbeddingGenerator:
         self.logger.info(f"Using batch size: {batch_size}")
         self.logger.info(f"Using {'MAG paper IDs' if use_mag_ids else 'node indices'} as identifiers")
         self.logger.info(f"Embedding mode: {self.embedding_mode}")
+        self.logger.info(f"Stopword removal: {self.remove_stopwords}")
 
         # Generate embeddings for combined texts
         embeddings = self.generate_embeddings_batch(combined_texts, batch_size)
@@ -478,15 +577,16 @@ class CUDAOptimizedEmbeddingGenerator:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        # Create model-specific filename with embedding mode
+        # Create model-specific filename with embedding mode and stopword indicator
         model_short_name = self.model_name.split('/')[-1].lower().replace('-', '_')
+        stopword_suffix = "_no_stopwords" if self.remove_stopwords else ""
 
         # Save embeddings as numpy array
         if include_class_labels:
             id_suffix = "mag_ids" if use_mag_ids else "node_ids"
-            embeddings_file = output_path / f"{model_short_name}_{self.embedding_mode}_embeddings_with_labels_{id_suffix}.npy"
+            embeddings_file = output_path / f"{model_short_name}_{self.embedding_mode}_embeddings_with_labels_{id_suffix}{stopword_suffix}.npy"
         else:
-            embeddings_file = output_path / f"{model_short_name}_{self.embedding_mode}_embeddings.npy"
+            embeddings_file = output_path / f"{model_short_name}_{self.embedding_mode}_embeddings{stopword_suffix}.npy"
 
         # Save with memory optimization
         np.save(embeddings_file, embeddings_with_labels.astype(np.float32))
@@ -496,6 +596,8 @@ class CUDAOptimizedEmbeddingGenerator:
         metadata = {
             'model': self.model_name,
             'embedding_mode': self.embedding_mode,
+            'stopword_removal': self.remove_stopwords,
+            'stopwords_language': self.stopwords_lang if self.remove_stopwords else None,
             'num_papers': len(node_ids),
             'embedding_dim': embeddings.shape[1],
             'num_classes': len(set(class_indices)),
@@ -522,7 +624,8 @@ class CUDAOptimizedEmbeddingGenerator:
             'embedding_dim': embeddings.shape[1],
             'num_classes': len(set(class_indices)),
             'identifier_type': 'mag_paper_id' if use_mag_ids else 'node_id',
-            'embedding_mode': self.embedding_mode
+            'embedding_mode': self.embedding_mode,
+            'stopword_removal': self.remove_stopwords
         }
 
     def _print_summary(self, metadata, embeddings_with_labels, output_path, include_class_labels, use_mag_ids):
@@ -532,6 +635,9 @@ class CUDAOptimizedEmbeddingGenerator:
         self.logger.info("=" * 50)
         self.logger.info(f"Model: {metadata['model']}")
         self.logger.info(f"Embedding mode: {metadata['embedding_mode']}")
+        self.logger.info(f"Stopword removal: {metadata['stopword_removal']}")
+        if metadata['stopword_removal']:
+            self.logger.info(f"Stopwords language: {metadata['stopwords_language']}")
         self.logger.info(f"Device: {metadata['device']}")
         self.logger.info(f"CUDA optimizations: {metadata['cuda_optimized']}")
         self.logger.info(f"Batch size: {metadata['batch_size']}")
@@ -565,6 +671,13 @@ def main():
     parser.add_argument("--embedding-mode", type=str, default="title",
                         choices=["title", "abstract", "authors", "title_abstract", "combined"],
                         help="What to embed: title, abstract, authors, title_abstract, or combined")
+
+    # Stopword removal options
+    parser.add_argument("--remove-stopwords", action="store_true",
+                        help="Remove stopwords before generating embeddings")
+    parser.add_argument("--stopwords-lang", type=str, default="english",
+                        help="Language for stopwords (default: english)")
+
     parser.add_argument("--batch-size", type=int, default=None, help="Batch size (auto-determined if None)")
     parser.add_argument("--device", type=str, default=None, help="Device to use (cuda/cpu)")
     parser.add_argument("--nodes-csv", type=str, default="../data/processed/ogbn_arxiv_nodes.csv",
@@ -576,11 +689,13 @@ def main():
 
     args = parser.parse_args()
 
-    # Initialize CUDA-optimized generator
+    # Initialize CUDA-optimized generator with stopword removal option
     generator = CUDAOptimizedEmbeddingGenerator(
         model_name=args.model,
         device=args.device,
-        embedding_mode=args.embedding_mode
+        embedding_mode=args.embedding_mode,
+        remove_stopwords=args.remove_stopwords,
+        stopwords_lang=args.stopwords_lang
     )
 
     # Load model
@@ -601,6 +716,7 @@ def main():
     print("=" * 60)
     print(f"Model: {result['metadata']['model']}")
     print(f"Embedding mode: {result['embedding_mode']}")
+    print(f"Stopword removal: {'Yes' if result['stopword_removal'] else 'No'}")
     print(f"Shape: {result['shape']}")
     print(f"Saved to: {result['embeddings_file']}")
     print("=" * 60)

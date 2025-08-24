@@ -10,6 +10,7 @@ import warnings
 import argparse
 import os
 import json
+from scipy.sparse.csgraph import shortest_path
 
 warnings.filterwarnings('ignore')
 
@@ -172,7 +173,7 @@ class CitationNetworkClustering:
         return result_df, cluster_labels
 
     def calculate_evaluation_metrics(self, result_df, cluster_labels):
-        """Calculate ARI and Silhouette scores"""
+        """Calculate ARI and Silhouette scores - FIXED for large graphs"""
         print("\nCalculating evaluation metrics...")
 
         # Ground truth labels
@@ -182,15 +183,28 @@ class CitationNetworkClustering:
         # Adjusted Rand Index
         ari_score = adjusted_rand_score(ground_truth, predicted_clusters)
 
-        # Silhouette Score (using adjacency matrix as distance)
-        # For sparse matrices, we need to convert to dense or use a different approach
-        if self.adjacency_matrix.shape[0] < 10000:  # Only for smaller matrices
+        # Silhouette Score - FIXED FOR LARGE GRAPHS (17K+ nodes)
+        n_nodes = len(cluster_labels)
+        print(f"Graph size: {n_nodes} nodes")
+
+        if n_nodes > 10000:
+            print("Large graph detected. Using efficient sampling for silhouette score...")
+            silhouette_avg = self._calculate_silhouette_sampling(cluster_labels, sample_size=2000)
+        elif self.adjacency_matrix.shape[0] < 10000:  # Only for smaller matrices
             try:
-                # Convert to distance matrix (1 - similarity)
-                similarity_matrix = self.adjacency_matrix.toarray()
-                # Add small constant to diagonal to avoid zero distances
-                np.fill_diagonal(similarity_matrix, 1.0)
-                distance_matrix = 1 - similarity_matrix
+                # Use shortest path distances instead of (1 - adjacency)
+
+                print("Computing graph distances for silhouette score...")
+                distance_matrix = shortest_path(
+                    self.adjacency_matrix,
+                    method='auto',
+                    directed=False,
+                    unweighted=True
+                )
+
+                # Handle infinite distances (disconnected components)
+                max_finite_dist = np.max(distance_matrix[np.isfinite(distance_matrix)])
+                distance_matrix[np.isinf(distance_matrix)] = max_finite_dist + 1
 
                 silhouette_avg = silhouette_score(
                     distance_matrix,
@@ -198,11 +212,12 @@ class CitationNetworkClustering:
                     metric='precomputed'
                 )
             except Exception as e:
-                print(f"Error calculating silhouette score: {e}")
-                silhouette_avg = None
+                print(f"Graph-based silhouette calculation failed: {e}")
+                print("Falling back to sampling method...")
+                silhouette_avg = self._calculate_silhouette_sampling(cluster_labels)
         else:
-            print("Matrix too large for silhouette score calculation, skipping...")
-            silhouette_avg = None
+            print("Matrix too large for standard silhouette calculation, using sampling...")
+            silhouette_avg = self._calculate_silhouette_sampling(cluster_labels)
 
         # Store results
         metrics = {
@@ -221,11 +236,78 @@ class CitationNetworkClustering:
         if silhouette_avg is not None:
             print(f"  Silhouette Score: {silhouette_avg:.4f}")
         else:
-            print(f"  Silhouette Score: Not calculated (matrix too large)")
+            print(f"  Silhouette Score: Could not calculate")
         print(f"  True clusters: {metrics['n_clusters_true']}")
         print(f"  Predicted clusters: {metrics['n_clusters_predicted']}")
 
         return metrics
+
+    def _calculate_silhouette_sampling(self, cluster_labels, sample_size=2000):
+        """NEW METHOD: Calculate silhouette using stratified sampling for large graphs"""
+        try:
+
+            n_nodes = len(cluster_labels)
+            print(f"Computing silhouette via sampling ({min(sample_size, n_nodes)} of {n_nodes} nodes)...")
+
+            if n_nodes <= sample_size:
+                sample_indices = np.arange(n_nodes)
+            else:
+                # Stratified sampling to maintain cluster proportions
+                sample_indices = []
+                unique_clusters = np.unique(cluster_labels)
+
+                for cluster_id in unique_clusters:
+                    cluster_mask = cluster_labels == cluster_id
+                    cluster_indices = np.where(cluster_mask)[0]
+
+                    # Sample proportionally from each cluster
+                    cluster_sample_size = max(1, int(len(cluster_indices) * sample_size / n_nodes))
+                    cluster_sample_size = min(cluster_sample_size, len(cluster_indices))
+
+                    if len(cluster_indices) > 0:
+                        sampled_from_cluster = np.random.choice(
+                            cluster_indices,
+                            size=cluster_sample_size,
+                            replace=False
+                        )
+                        sample_indices.extend(sampled_from_cluster)
+
+                sample_indices = np.array(sample_indices[:sample_size])
+
+            # Create subgraph adjacency matrix
+            sub_adjacency = self.adjacency_matrix[sample_indices][:, sample_indices]
+
+            # Calculate distances on subgraph
+            distance_matrix = shortest_path(
+                sub_adjacency,
+                method='auto',
+                directed=False,
+                unweighted=True
+            )
+
+            # Handle infinite distances
+            max_finite_dist = np.max(distance_matrix[np.isfinite(distance_matrix)])
+            distance_matrix[np.isinf(distance_matrix)] = max_finite_dist + 1
+
+            # Get cluster labels for sampled nodes
+            sampled_cluster_labels = cluster_labels[sample_indices]
+
+            # Calculate silhouette score
+            if len(np.unique(sampled_cluster_labels)) > 1:
+                sil_score = silhouette_score(
+                    distance_matrix,
+                    sampled_cluster_labels,
+                    metric='precomputed'
+                )
+                print(f"Silhouette score (sampled): {sil_score:.4f}")
+                return sil_score
+            else:
+                print("Only one cluster in sample, silhouette score undefined")
+                return None
+
+        except Exception as e:
+            print(f"Sampling silhouette calculation failed: {e}")
+            return None
 
     def analyze_cluster_composition(self, result_df, output_dir=None):
         """Analyze how well clusters match ground truth classes"""
