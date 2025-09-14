@@ -103,46 +103,44 @@ class EfficientEigenGapAnalysis:
         return laplacian
 
     def compute_all_eigenvalues(self, laplacian: sparse.csr_matrix) -> np.ndarray:
-        """Step 3: Compute ALL eigenvalues ONCE using fast LOBPCG solver."""
-        logging.info(f"STEP 3: Computing {self.max_k_analyze} smallest eigenvalues using LOBPCG solver...")
+        """Step 3: Compute ALL eigenvalues using ARPACK solver (most reliable)."""
+        logging.info(f"STEP 3: Computing {self.max_k_analyze} smallest eigenvalues using ARPACK solver...")
 
-        # Compute all needed eigenvalues at once
-        k_eig = min(self.max_k_analyze + 5, self.n_papers - 1)  # Add buffer for analysis
+        k_eig = min(self.max_k_analyze + 5, self.n_papers - 2)  # Must be < n_papers - 1 for ARPACK
 
         try:
-            from scipy.sparse.linalg import lobpcg
+            from scipy.sparse.linalg import eigsh
 
-            # Create initial guess for LOBPCG - random orthogonal vectors
-            np.random.seed(42)  # Reproducible results
-            X = np.random.random((self.n_papers, k_eig))
-
-            # Orthogonalize initial guess using QR decomposition
-            X, _ = np.linalg.qr(X)
-
-            logging.info(f"Using LOBPCG solver with random initial guess")
-
-            eigenvalues, eigenvectors = lobpcg(
+            # ARPACK is more stable and often faster for moderate k
+            eigenvalues, eigenvectors = eigsh(
                 laplacian,
-                X,
-                largest=False,  # Find smallest eigenvalues
-                tol=1e-6,
+                k=k_eig,
+                which='SM',  # Smallest Magnitude
+                tol=1e-8,
                 maxiter=1000,
-                verbosityLevel=0
+                return_eigenvectors=True
             )
 
-            # Sort eigenvalues (should already be sorted but ensure it)
-            eigenvalues = np.sort(eigenvalues)
+            # Sort eigenvalues (ARPACK doesn't guarantee order)
+            idx = eigenvalues.argsort()
+            eigenvalues = eigenvalues[idx]
+            eigenvectors = eigenvectors[:, idx]
 
-            # Filter out negative eigenvalues (numerical errors)
-            eigenvalues = eigenvalues[eigenvalues >= -1e-10]
-            eigenvalues[eigenvalues < 0] = 0
+            # Clean up numerical errors
+            eigenvalues[np.abs(eigenvalues) < 1e-10] = 0
 
             self.eigenvalues = eigenvalues
-            logging.info(f"✓ STEP 3 COMPLETE: LOBPCG computed {len(eigenvalues)} eigenvalues")
+            self.eigenvectors = eigenvectors
+
+            logging.info(f"✓ STEP 3 COMPLETE: ARPACK computed {len(eigenvalues)} eigenvalues")
             logging.info(f"Eigenvalue range: {eigenvalues[0]:.2e} to {eigenvalues[-1]:.2e}")
             logging.info(f"First 10 eigenvalues: {eigenvalues[:10]}")
 
             return eigenvalues
+
+        except Exception as e:
+            logging.error(f"ARPACK failed: {e}")
+            raise
 
         except Exception as e:
             logging.warning(f"LOBPCG failed: {e}")
