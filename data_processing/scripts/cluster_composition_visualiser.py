@@ -424,107 +424,245 @@ class ArXivClusterVisualizer:
         summary_df.to_csv(csv_path, index=False)
         print(f"Cluster summary saved to: {csv_path}")
 
-    def create_dominant_class_bar_chart(self, figsize: Tuple[int, int] = (16, 10)) -> None:
-        """Create a bar chart showing dominant class for each cluster with full category names."""
-        print("Creating dominant class bar chart...")
+    def create_dominant_class_bar_chart_top3(self, figsize: Tuple[int, int] = (24, 14)) -> None:
+        """Create a stacked bar chart showing ONLY top 3 categories with labels above small bars."""
+        print("Creating top 3 categories stacked bar chart per cluster...")
 
-        # Find dominant category per cluster
-        cluster_dominants = []
+        # Collect top 3 categories per cluster
+        cluster_top3_data = []
         for cluster_id in sorted(self.df['cluster_id'].unique()):
-            cluster_data = self.df[self.df['cluster_id'] == cluster_id]
-            dominant_idx = cluster_data['paper_count'].idxmax()
-            dominant_row = cluster_data.loc[dominant_idx]
+            cluster_data = self.df[self.df['cluster_id'] == cluster_id].copy()
+            cluster_data = cluster_data.sort_values('paper_count', ascending=False).head(3)
 
-            # Get full category name
-            short_name = dominant_row['arxiv_category']
-            full_name = ARXIV_FULL_NAMES.get(short_name, short_name)
+            total_papers = self.df[self.df['cluster_id'] == cluster_id]['paper_count'].sum()
 
-            cluster_dominants.append({
+            top_categories = []
+            for idx, row in cluster_data.iterrows():
+                short_name = row['arxiv_category']
+                full_name = ARXIV_FULL_NAMES.get(short_name, short_name)
+                percentage = row['percentage_in_cluster']
+                top_categories.append({
+                    'short': short_name,
+                    'full': full_name,
+                    'count': row['paper_count'],
+                    'percentage': percentage
+                })
+
+            # Pad with empty entries if less than 3 categories
+            while len(top_categories) < 3:
+                top_categories.append({
+                    'short': None,
+                    'full': 'None',
+                    'count': 0,
+                    'percentage': 0
+                })
+
+            cluster_top3_data.append({
                 'cluster_id': cluster_id,
-                'dominant_category_short': short_name,
-                'dominant_category_full': full_name,
-                'dominant_count': dominant_row['paper_count'],
-                'dominant_percentage': dominant_row['percentage_in_cluster'],
-                'total_papers': cluster_data['paper_count'].sum()
+                'total_papers': total_papers,
+                'top1': top_categories[0],
+                'top2': top_categories[1],
+                'top3': top_categories[2]
             })
-
-        dominants_df = pd.DataFrame(cluster_dominants)
 
         # Create the plot
         fig, ax = plt.subplots(figsize=figsize)
 
-        # Create color map based on category for visual grouping
-        unique_categories = dominants_df['dominant_category_short'].unique()
-        colors = plt.cm.Set3(np.linspace(0, 1, len(unique_categories)))
-        color_map = dict(zip(unique_categories, colors))
+        # Prepare data for stacked bars
+        cluster_ids = [d['cluster_id'] for d in cluster_top3_data]
 
-        bar_colors = [color_map[cat] for cat in dominants_df['dominant_category_short']]
+        # Get counts for stacking (actual paper counts) - ONLY TOP 3
+        top1_counts = [d['top1']['count'] for d in cluster_top3_data]
+        top2_counts = [d['top2']['count'] for d in cluster_top3_data]
+        top3_counts = [d['top3']['count'] for d in cluster_top3_data]
 
-        # Create bar chart
-        bars = ax.bar(dominants_df['cluster_id'],
-                      dominants_df['total_papers'],
-                      color=bar_colors,
-                      alpha=0.8,
-                      edgecolor='black',
-                      linewidth=0.5)
+        # Get percentages for labels
+        top1_pcts = [d['top1']['percentage'] for d in cluster_top3_data]
+        top2_pcts = [d['top2']['percentage'] for d in cluster_top3_data]
+        top3_pcts = [d['top3']['percentage'] for d in cluster_top3_data]
+
+        # Calculate total height of stacked bars (only top 3)
+        total_top3_counts = [t1 + t2 + t3 for t1, t2, t3 in zip(top1_counts, top2_counts, top3_counts)]
+
+        # Width of bars
+        bar_width = 0.8
+
+        # Create stacked bars (bottom to top: top1, top2, top3) - NO "OTHER"
+        bars1 = ax.bar(cluster_ids, top1_counts, bar_width,
+                       label='Top 1 Category', color='#2E86AB', alpha=0.9, edgecolor='white', linewidth=1.5)
+
+        bars2 = ax.bar(cluster_ids, top2_counts, bar_width,
+                       bottom=top1_counts, label='Top 2 Category',
+                       color='#A23B72', alpha=0.9, edgecolor='white', linewidth=1.5)
+
+        # Calculate bottom for third bar
+        bottom_top3 = [t1 + t2 for t1, t2 in zip(top1_counts, top2_counts)]
+        bars3 = ax.bar(cluster_ids, top3_counts, bar_width,
+                       bottom=bottom_top3, label='Top 3 Category',
+                       color='#F18F01', alpha=0.9, edgecolor='white', linewidth=1.5)
+
+        # Calculate max height for positioning labels
+        max_height = max(total_top3_counts) if max(total_top3_counts) > 0 else 1
+
+        # Threshold: bars smaller than 10% of max height get labels above
+        label_inside_threshold = max_height * 0.10
+
+        # Add text labels for top 3 categories
+        for i, data in enumerate(cluster_top3_data):
+            cluster_id = data['cluster_id']
+
+            # Label for top 1 (bottom segment)
+            if top1_counts[i] > 0:
+                y_pos = top1_counts[i] / 2
+                full_name = data['top1']['full']
+                percentage = data['top1']['percentage']
+
+                if top1_counts[i] < label_inside_threshold:
+                    # Place label ABOVE the bar
+                    label_y = total_top3_counts[i] + max_height * 0.08
+                    ax.text(cluster_id, label_y,
+                            f"1: {full_name} ({percentage:.1f}%)",
+                            ha='center', va='bottom', fontsize=8, fontweight='bold',
+                            color='#2E86AB',
+                            bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                                      alpha=0.9, edgecolor='#2E86AB', linewidth=1.5))
+                else:
+                    # Place label inside
+                    ax.text(cluster_id, y_pos, f"{full_name}\n{percentage:.1f}%",
+                            ha='center', va='center', fontsize=8, fontweight='bold',
+                            color='white')
+
+            # Label for top 2 (middle segment)
+            if top2_counts[i] > 0:
+                y_pos = top1_counts[i] + top2_counts[i] / 2
+                full_name = data['top2']['full']
+                percentage = data['top2']['percentage']
+
+                if top2_counts[i] < label_inside_threshold:
+                    # Place label ABOVE the bar
+                    label_y = total_top3_counts[i] + max_height * 0.16
+                    ax.text(cluster_id, label_y,
+                            f"2: {full_name} ({percentage:.1f}%)",
+                            ha='center', va='bottom', fontsize=8, fontweight='bold',
+                            color='#A23B72',
+                            bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                                      alpha=0.9, edgecolor='#A23B72', linewidth=1.5))
+                else:
+                    ax.text(cluster_id, y_pos, f"{full_name}\n{percentage:.1f}%",
+                            ha='center', va='center', fontsize=8, fontweight='bold',
+                            color='white')
+
+            # Label for top 3 (top segment)
+            if top3_counts[i] > 0:
+                y_pos = top1_counts[i] + top2_counts[i] + top3_counts[i] / 2
+                full_name = data['top3']['full']
+                percentage = data['top3']['percentage']
+
+                if top3_counts[i] < label_inside_threshold:
+                    # Place label ABOVE the bar
+                    label_y = total_top3_counts[i] + max_height * 0.24
+                    ax.text(cluster_id, label_y,
+                            f"3: {full_name} ({percentage:.1f}%)",
+                            ha='center', va='bottom', fontsize=8, fontweight='bold',
+                            color='#F18F01',
+                            bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                                      alpha=0.9, edgecolor='#F18F01', linewidth=1.5))
+                else:
+                    ax.text(cluster_id, y_pos, f"{full_name}\n{percentage:.1f}%",
+                            ha='center', va='center', fontsize=8, fontweight='bold',
+                            color='white')
+
+            # Add total paper count at the base of bar
+            ax.text(cluster_id, -max_height * 0.05,
+                    f'{data["total_papers"]}',
+                    ha='center', va='top', fontsize=9, fontweight='bold', color='black')
 
         # Customize the plot
         ax.set_xlabel('Cluster ID', fontsize=14, fontweight='bold')
-        ax.set_ylabel('Total Papers in Cluster', fontsize=14, fontweight='bold')
-        ax.set_title('Cluster Sizes with Dominant arXiv Categories',
+        ax.set_ylabel('Number of Papers (Top 3 Categories Only)', fontsize=14, fontweight='bold')
+        ax.set_title('Top 3 arXiv Categories per Cluster (Stacked)',
                      fontsize=16, fontweight='bold', pad=20)
 
-        # Add grid for better readability
+        # Add grid
         ax.grid(axis='y', alpha=0.3, linestyle='--')
         ax.set_axisbelow(True)
 
-        # Add value labels on top of bars with full category names
-        for i, (bar, row) in enumerate(zip(bars, dominants_df.itertuples())):
-            # Add paper count on top
-            ax.text(bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + max(dominants_df['total_papers']) * 0.01,
-                    f'{row.total_papers}',
-                    ha='center', va='bottom', fontweight='bold', fontsize=9)
+        # Customize legend
+        ax.legend(loc='upper left', fontsize=12, framealpha=0.95,
+                  edgecolor='black', fancybox=True)
 
-            # Add category name below the bar (rotated)
-            ax.text(bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() * 0.1,
-                    f'{row.dominant_category_full}\n({row.dominant_percentage:.1f}%)',
-                    ha='center', va='bottom',
-                    rotation=90, fontsize=8, fontweight='bold',
-                    bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.8))
+        # Set x-axis
+        ax.set_xticks(cluster_ids)
+        ax.set_xlim(min(cluster_ids) - 0.5, max(cluster_ids) + 0.5)
 
-        # Set x-axis ticks
-        ax.set_xticks(dominants_df['cluster_id'])
-        ax.set_xlim(-0.5, max(dominants_df['cluster_id']) + 0.5)
+        # Set y-axis to accommodate labels above bars
+        ax.set_ylim(-max_height * 0.08, max_height * 1.4)
 
-        # Add legend for categories (show most frequent ones)
-        category_counts = dominants_df['dominant_category_short'].value_counts()
-        legend_elements = []
-        for cat in category_counts.index[:10]:  # Show top 10 most frequent
-            full_name = ARXIV_FULL_NAMES.get(cat, cat)
-            legend_elements.append(plt.Rectangle((0, 0), 1, 1,
-                                                 facecolor=color_map[cat],
-                                                 alpha=0.8,
-                                                 label=f'{cat}: {full_name}'))
-
-        ax.legend(handles=legend_elements,
-                  bbox_to_anchor=(1.05, 1),
-                  loc='upper left',
-                  fontsize=10)
+        # Add horizontal line at y=0
+        ax.axhline(y=0, color='black', linewidth=1)
 
         plt.tight_layout()
 
         # Save
-        save_path = self.output_dir / "dominant_class_bar_chart.png"
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Dominant class bar chart saved to: {save_path}")
+        save_path = self.output_dir / "top3_categories_stacked_bar_chart.png"
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0.3)
+        print(f"Top 3 categories stacked bar chart saved to: {save_path}")
         plt.close()
 
-        # Also create a summary table
-        summary_path = self.output_dir / "cluster_dominant_categories.csv"
-        dominants_df.to_csv(summary_path, index=False)
-        print(f"Cluster dominant categories summary saved to: {summary_path}")
+        # Create detailed summary table
+        summary_rows = []
+        total_papers_all = [d['total_papers'] for d in cluster_top3_data]
+
+        for data in cluster_top3_data:
+            # Calculate "other" for information purposes
+            top3_total = data['top1']['count'] + data['top2']['count'] + data['top3']['count']
+            other_count = data['total_papers'] - top3_total
+            other_percentage = (other_count / data['total_papers'] * 100) if data['total_papers'] > 0 else 0
+
+            summary_rows.append({
+                'cluster_id': data['cluster_id'],
+                'total_papers': data['total_papers'],
+                'top1_category': data['top1']['short'],
+                'top1_full_name': data['top1']['full'],
+                'top1_count': data['top1']['count'],
+                'top1_percentage': data['top1']['percentage'],
+                'top2_category': data['top2']['short'],
+                'top2_full_name': data['top2']['full'],
+                'top2_count': data['top2']['count'],
+                'top2_percentage': data['top2']['percentage'],
+                'top3_category': data['top3']['short'],
+                'top3_full_name': data['top3']['full'],
+                'top3_count': data['top3']['count'],
+                'top3_percentage': data['top3']['percentage'],
+                'top3_total_count': top3_total,
+                'top3_total_percentage': sum([data['top1']['percentage'],
+                                              data['top2']['percentage'],
+                                              data['top3']['percentage']]),
+                'other_count': other_count,
+                'other_percentage': other_percentage
+            })
+
+        summary_df = pd.DataFrame(summary_rows)
+        csv_path = self.output_dir / "cluster_top3_categories.csv"
+        summary_df.to_csv(csv_path, index=False)
+        print(f"Top 3 categories summary saved to: {csv_path}")
+
+        # Print summary
+        print(f"\nTop 3 Categories Summary:")
+        for data in cluster_top3_data[:5]:  # Show first 5 clusters
+            top3_sum = data['top1']['count'] + data['top2']['count'] + data['top3']['count']
+            top3_pct = sum([data['top1']['percentage'], data['top2']['percentage'], data['top3']['percentage']])
+
+            print(
+                f"\nCluster {data['cluster_id']} ({data['total_papers']} papers, top 3 = {top3_sum} papers = {top3_pct:.1f}%):")
+            print(f"  1. {data['top1']['full']}: {data['top1']['count']} ({data['top1']['percentage']:.1f}%)")
+            if data['top2']['count'] > 0:
+                print(f"  2. {data['top2']['full']}: {data['top2']['count']} ({data['top2']['percentage']:.1f}%)")
+            if data['top3']['count'] > 0:
+                print(f"  3. {data['top3']['full']}: {data['top3']['count']} ({data['top3']['percentage']:.1f}%)")
+
+        if len(cluster_top3_data) > 5:
+            print(f"\n... and {len(cluster_top3_data) - 5} more clusters")
 
     def create_category_scatter_plot(self) -> None:
         """Create scatter plot showing cluster purity vs size."""
@@ -706,7 +844,7 @@ class ArXivClusterVisualizer:
         self.create_cluster_stacked_bars()
         self.create_category_distribution_per_cluster()
         self.create_dominant_category_analysis()
-        self.create_dominant_class_bar_chart()  # NEW: Clean bar chart with full names
+        self.create_dominant_class_bar_chart_top3()  # NEW: Clean bar chart with full names
         self.create_category_scatter_plot()
 
         print(f"\n✅ All visualizations completed!")
