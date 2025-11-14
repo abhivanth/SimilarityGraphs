@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
-from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import eigsh
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.cluster import SpectralClustering
+from mvlearn.cluster import MultiviewSpectralClustering
 from pathlib import Path
 import logging
 import json
@@ -18,6 +18,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class MultiviewCitationClustering:
     """
     Multiview spectral clustering combining text embeddings and citation structure.
+    Uses mvlearn's MultiviewSpectralClustering with proper feature matrices.
     """
 
     def __init__(
@@ -26,6 +27,7 @@ class MultiviewCitationClustering:
             nodes_csv: str,
             edges_csv: str,
             n_clusters: int = 40,
+            n_spectral_dims: int = 50,  # NEW: dimensionality for spectral embedding
             k_neighbors: int = 20,
             output_dir: str = "results/multiview_clustering",
             random_state: int = 42
@@ -34,6 +36,7 @@ class MultiviewCitationClustering:
         self.nodes_csv = nodes_csv
         self.edges_csv = edges_csv
         self.n_clusters = n_clusters
+        self.n_spectral_dims = n_spectral_dims  # NEW
         self.k_neighbors = k_neighbors
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -46,15 +49,16 @@ class MultiviewCitationClustering:
         self.nodes_df = None
         self.edges_df = None
 
-        # Affinity matrices
-        self.text_affinity = None
-        self.citation_affinity = None
+        # Feature matrices for multiview
+        self.text_features = None  # View 1: Text embeddings
+        self.citation_features = None  # View 2: Spectral embeddings from citation graph
 
         # Results
         self.cluster_labels = None
         self.results = {}
 
-        logging.info(f"Initialized with n_clusters={n_clusters}, k_neighbors={k_neighbors}")
+        logging.info(
+            f"Initialized with n_clusters={n_clusters}, n_spectral_dims={n_spectral_dims}, k_neighbors={k_neighbors}")
 
     def load_data(self):
         """Load embeddings and citation network data."""
@@ -81,7 +85,7 @@ class MultiviewCitationClustering:
         self._align_datasets()
 
     def _align_datasets(self):
-        """Ensure embeddings and citation network have same nodes."""
+        """Ensure embeddings and citation network have same nodes in same order."""
         logging.info("Aligning datasets...")
 
         embedding_nodes = set(self.node_ids)
@@ -90,7 +94,7 @@ class MultiviewCitationClustering:
 
         logging.info(f"Common nodes: {len(common_nodes)}")
 
-        # Filter to common nodes
+        # Filter to common nodes and maintain consistent ordering
         node_to_idx = {node_id: idx for idx, node_id in enumerate(self.node_ids)}
         common_indices = [node_to_idx[node] for node in common_nodes if node in node_to_idx]
 
@@ -100,51 +104,21 @@ class MultiviewCitationClustering:
 
         self.nodes_df = self.nodes_df[self.nodes_df['node_id'].isin(common_nodes)]
 
+        # Sort nodes_df to match node_ids order for consistency
+        node_id_to_position = {nid: pos for pos, nid in enumerate(self.node_ids)}
+        self.nodes_df['_sort_order'] = self.nodes_df['node_id'].map(node_id_to_position)
+        self.nodes_df = self.nodes_df.sort_values('_sort_order').drop('_sort_order', axis=1).reset_index(drop=True)
+
         logging.info(f"Aligned to {len(self.node_ids)} common nodes")
 
-    def create_text_affinity_matrix(self):
-        """Create affinity matrix from text embeddings using k-NN."""
-        logging.info(f"Creating text affinity matrix (k-NN with k={self.k_neighbors})...")
+    def create_spectral_embedding_from_citations(self):
+        """
+        Create spectral embedding features from citation graph.
+        Handles isolated nodes by adding self-loops or using modified Laplacian.
+        """
+        logging.info(f"Creating spectral embedding from citation graph (dim={self.n_spectral_dims})...")
 
-        n_nodes = len(self.embeddings)
-        nbrs = NearestNeighbors(n_neighbors=self.k_neighbors + 1, metric='cosine', n_jobs=-1)
-        nbrs.fit(self.embeddings)
-
-        distances, indices = nbrs.kneighbors(self.embeddings)
-        similarities = 1 - distances
-
-        # Build sparse affinity matrix
-        row_indices = []
-        col_indices = []
-        data = []
-
-        for i in range(n_nodes):
-            for j_idx in range(1, self.k_neighbors + 1):
-                neighbor = indices[i, j_idx]
-                sim = similarities[i, j_idx]
-                if sim > 0:
-                    row_indices.extend([i, neighbor])
-                    col_indices.extend([neighbor, i])
-                    data.extend([sim, sim])
-
-        self.text_affinity = csr_matrix(
-            (data, (row_indices, col_indices)),
-            shape=(n_nodes, n_nodes)
-        )
-        self.text_affinity.setdiag(1.0)
-
-        # Clip to valid range
-        self.text_affinity.data = np.clip(self.text_affinity.data, 0.0, 1.0)
-
-        logging.info(f"Text affinity: {self.text_affinity.shape}, nnz={self.text_affinity.nnz}")
-
-        del nbrs, distances, indices, similarities
-        gc.collect()
-
-    def create_citation_affinity_matrix(self):
-        """Create affinity matrix from citation network."""
-        logging.info("Creating citation affinity matrix...")
-
+        # Build adjacency matrix
         node_to_idx = {node_id: idx for idx, node_id in enumerate(self.node_ids)}
         n_nodes = len(self.node_ids)
 
@@ -155,6 +129,7 @@ class MultiviewCitationClustering:
 
         logging.info(f"Valid citation edges: {len(valid_edges)}")
 
+        # Create symmetric adjacency matrix (undirected)
         row_indices = []
         col_indices = []
 
@@ -170,55 +145,177 @@ class MultiviewCitationClustering:
             (data, (row_indices, col_indices)),
             shape=(n_nodes, n_nodes)
         )
-        adjacency.setdiag(1.0)
 
-        # Normalize
+        # ADD SELF-LOOPS TO ALL NODES (prevents singularity)
+        adjacency.setdiag(1)
+        adjacency.eliminate_zeros()
+
+        logging.info(f"Adjacency matrix: shape={adjacency.shape}, nnz={adjacency.nnz}")
+
+        # Compute degree matrix
         degrees = np.array(adjacency.sum(axis=1)).flatten()
-        degrees[degrees == 0] = 1
 
-        D_inv_sqrt = csr_matrix(np.diag(1.0 / np.sqrt(degrees)))
-        self.citation_affinity = D_inv_sqrt @ adjacency @ D_inv_sqrt
+        # Check for isolated nodes (should be none now with self-loops)
+        isolated_nodes = np.where(degrees == 0)[0]
+        if len(isolated_nodes) > 0:
+            logging.warning(f"Found {len(isolated_nodes)} isolated nodes (degree=0)")
+            degrees[isolated_nodes] = 1
 
-        logging.info(f"Citation affinity: {self.citation_affinity.shape}, nnz={self.citation_affinity.nnz}")
+        # Compute D^(-1/2)
+        D_inv_sqrt = np.sqrt(1.0 / degrees)
+        D_inv_sqrt_diag = csr_matrix(np.diag(D_inv_sqrt))
 
-        del adjacency, degrees, D_inv_sqrt
+        # Compute normalized Laplacian: L_sym = I - D^(-1/2) * A * D^(-1/2)
+        logging.info("Computing normalized Laplacian...")
+        normalized_adjacency = D_inv_sqrt_diag @ adjacency @ D_inv_sqrt_diag
+
+        # L_sym = I - normalized_adjacency
+        identity = csr_matrix(np.eye(n_nodes))
+        laplacian = identity - normalized_adjacency
+
+        logging.info(f"Normalized Laplacian: shape={laplacian.shape}")
+
+        # Compute eigenvectors using different method for robustness
+        logging.info(f"Computing {self.n_spectral_dims} smallest eigenvectors...")
+
+        try:
+            # Use 'LM' (largest magnitude) on -Laplacian to get smallest eigenvalues
+            # More stable than 'SM' with sigma
+            eigenvalues, eigenvectors = eigsh(
+                laplacian,
+                k=min(self.n_spectral_dims + 1, n_nodes - 2),  # Ensure k < n-1
+                which='SM',  # Smallest magnitude
+                maxiter=5000,  # Increase iterations
+                tol=1e-5,  # Relaxed tolerance
+                return_eigenvectors=True
+            )
+
+            # Sort by eigenvalue
+            idx = np.argsort(eigenvalues)
+            eigenvalues = eigenvalues[idx]
+            eigenvectors = eigenvectors[:, idx]
+
+            # Remove the first eigenvector (corresponding to eigenvalue ≈ 0)
+            self.citation_features = eigenvectors[:, 1:min(self.n_spectral_dims + 1, eigenvectors.shape[1])]
+
+            logging.info(f"Spectral embedding created: shape={self.citation_features.shape}")
+            logging.info(f"Eigenvalue range: [{eigenvalues[1]:.6f}, {eigenvalues[-1]:.6f}]")
+
+        except Exception as e:
+            logging.error(f"Eigenvalue computation failed: {e}")
+            logging.warning("Trying alternative: Random-walk Laplacian")
+
+            try:
+                # Alternative: Use random-walk Laplacian L_rw = I - D^(-1) * A
+                D_inv = csr_matrix(np.diag(1.0 / degrees))
+                laplacian_rw = identity - D_inv @ adjacency
+
+                eigenvalues, eigenvectors = eigsh(
+                    laplacian_rw,
+                    k=min(self.n_spectral_dims + 1, n_nodes - 2),
+                    which='SM',
+                    maxiter=5000,
+                    tol=1e-5,
+                    return_eigenvectors=True
+                )
+
+                idx = np.argsort(eigenvalues)
+                eigenvectors = eigenvectors[:, idx]
+                self.citation_features = eigenvectors[:, 1:min(self.n_spectral_dims + 1, eigenvectors.shape[1])]
+
+                logging.info(f"Random-walk Laplacian succeeded: shape={self.citation_features.shape}")
+
+            except Exception as e2:
+                logging.error(f"Random-walk Laplacian also failed: {e2}")
+                logging.warning("Falling back to adjacency-based features")
+
+                # Final fallback: Use degree and adjacency statistics
+                degree_features = degrees.reshape(-1, 1)
+                adjacency_sum = np.array(adjacency.sum(axis=1))
+
+                # Add some basic graph features
+                self.citation_features = np.hstack([
+                    degree_features,
+                    adjacency_sum,
+                    np.random.randn(n_nodes, self.n_spectral_dims - 2)
+                ])
+
+                logging.info(f"Using fallback features: shape={self.citation_features.shape}")
+
+        del adjacency, normalized_adjacency, laplacian, D_inv_sqrt_diag
         gc.collect()
 
+    def prepare_views(self):
+        """Prepare feature matrices for both views."""
+        logging.info("Preparing views for multiview clustering...")
+
+        # View 1: Text embeddings (already available)
+        self.text_features = self.embeddings
+
+        # Normalize text features (L2 normalization)
+        from sklearn.preprocessing import normalize
+        self.text_features = normalize(self.text_features, norm='l2')
+
+        # View 2: Spectral embeddings from citation graph
+        self.create_spectral_embedding_from_citations()
+
+        # Normalize citation features
+        self.citation_features = normalize(self.citation_features, norm='l2')
+
+        logging.info(f"View 1 (Text): shape={self.text_features.shape}")
+        logging.info(f"View 2 (Citation Spectral): shape={self.citation_features.shape}")
+
+        # Verify alignment
+        assert self.text_features.shape[0] == self.citation_features.shape[0], \
+            "Views must have same number of samples"
+        assert len(self.node_ids) == self.text_features.shape[0], \
+            "Node IDs must match number of samples"
+
     def perform_multiview_clustering(self):
-        """Perform multiview spectral clustering."""
-        logging.info("Performing multiview spectral clustering...")
+        """Perform multiview spectral clustering using mvlearn."""
+        logging.info("Performing multiview spectral clustering with mvlearn...")
 
-        text_dense = self.text_affinity.toarray()
-        citation_dense = self.citation_affinity.toarray()
+        # Create list of views
+        views = [self.text_features, self.citation_features]
 
-        logging.info(f"View 1 (Text): shape={text_dense.shape}")
-        logging.info(f"View 2 (Citation): shape={citation_dense.shape}")
+        logging.info(f"View shapes: {[v.shape for v in views]}")
 
-        # Combine affinities (simple average)
-        combined = (text_dense + citation_dense) / 2
-        combined = np.clip(combined, 0.0, 1.0)
-        np.fill_diagonal(combined, 1.0)
-        combined = (combined + combined.T) / 2
+        try:
+            # Initialize multiview spectral clustering
+            mvsc = MultiviewSpectralClustering(
+                n_clusters=self.n_clusters,
+                affinity='nearest_neighbors',  # Can also try 'rbf'
+                n_neighbors=self.k_neighbors,
+                random_state=self.random_state,
+                n_init=10
+            )
 
-        logging.info(f"Combined affinity - min: {combined.min():.4f}, max: {combined.max():.4f}")
+            # Fit and predict
+            self.cluster_labels = mvsc.fit_predict(views)
 
-        # Perform spectral clustering
-        sc = SpectralClustering(
-            n_clusters=self.n_clusters,
-            affinity='precomputed',
-            random_state=self.random_state,
-            n_init=10,
-            assign_labels='kmeans'
-        )
+            if self.cluster_labels is None or len(self.cluster_labels) == 0:
+                raise RuntimeError("Clustering failed to produce labels")
 
-        self.cluster_labels = sc.fit_predict(combined)
+            logging.info(f"Clustering complete: {len(np.unique(self.cluster_labels))} clusters found")
 
-        if self.cluster_labels is None or len(self.cluster_labels) == 0:
-            raise RuntimeError("Clustering failed to produce labels")
+        except Exception as e:
+            logging.error(f"mvlearn clustering failed: {e}")
+            logging.warning("Falling back to standard spectral clustering on concatenated features")
 
-        logging.info(f"Clustering complete: {len(np.unique(self.cluster_labels))} clusters found")
+            # Fallback: concatenate views and use standard spectral clustering
+            from sklearn.cluster import SpectralClustering
+            combined_features = np.hstack([self.text_features, self.citation_features])
 
-        del text_dense, citation_dense, combined
+            sc = SpectralClustering(
+                n_clusters=self.n_clusters,
+                affinity='nearest_neighbors',
+                n_neighbors=self.k_neighbors,
+                random_state=self.random_state,
+                n_init=10
+            )
+
+            self.cluster_labels = sc.fit_predict(combined_features)
+
         gc.collect()
 
     def evaluate_clustering(self):
@@ -250,6 +347,7 @@ class MultiviewCitationClustering:
             'normalized_mutual_info': float(nmi),
             'mean_cluster_purity': float(mean_purity),
             'n_clusters': int(self.n_clusters),
+            'n_spectral_dims': int(self.n_spectral_dims),
             'n_papers': int(len(self.cluster_labels)),
             'n_ground_truth_classes': int(len(np.unique(self.class_labels))),
             'composition_analysis': composition,
@@ -344,7 +442,7 @@ class MultiviewCitationClustering:
         }
 
     def _save_composition_csv(self, cluster_composition):
-        """Save detailed composition to CSV in same format as previous scripts."""
+        """Save detailed composition to CSV."""
         try:
             csv_data = []
             for cluster_id, comp in cluster_composition.items():
@@ -364,7 +462,6 @@ class MultiviewCitationClustering:
 
             logging.info(f"Detailed composition saved to {csv_path}")
             print(f"\n✓ Detailed composition saved to {csv_path}")
-            print(f"  Rows: {len(df)}, Format: SAME as previous scripts")
 
         except Exception as e:
             logging.warning(f"Could not save CSV: {e}")
@@ -399,14 +496,16 @@ class MultiviewCitationClustering:
 
         # Evaluation metrics
         metrics_text = (
+            f"Multiview Spectral Clustering (mvlearn)\n\n"
             f"Adjusted Rand Index: {self.results['adjusted_rand_index']:.4f}\n"
             f"Normalized Mutual Info: {self.results['normalized_mutual_info']:.4f}\n"
             f"Mean Cluster Purity: {self.results['mean_cluster_purity']:.4f}\n\n"
             f"Number of Clusters: {self.results['n_clusters']}\n"
+            f"Spectral Embedding Dim: {self.results['n_spectral_dims']}\n"
             f"Number of Papers: {self.results['n_papers']}\n"
             f"Ground Truth Classes: {self.results['n_ground_truth_classes']}"
         )
-        axes[1, 1].text(0.1, 0.5, metrics_text, fontsize=12,
+        axes[1, 1].text(0.1, 0.5, metrics_text, fontsize=11,
                         verticalalignment='center', transform=axes[1, 1].transAxes,
                         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
         axes[1, 1].set_title('Evaluation Metrics')
@@ -442,12 +541,11 @@ class MultiviewCitationClustering:
         """Run the complete multiview clustering pipeline."""
         try:
             print("\n" + "=" * 60)
-            print("MULTIVIEW SPECTRAL CLUSTERING PIPELINE")
+            print("MULTIVIEW SPECTRAL CLUSTERING PIPELINE (mvlearn)")
             print("=" * 60)
 
             self.load_data()
-            self.create_text_affinity_matrix()
-            self.create_citation_affinity_matrix()
+            self.prepare_views()
             self.perform_multiview_clustering()
             self.evaluate_clustering()
             self.visualize_results()
@@ -472,13 +570,15 @@ def main():
     """Main function with command-line interface."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Multiview Spectral Clustering for Citation Networks")
+    parser = argparse.ArgumentParser(description="Multiview Spectral Clustering for Citation Networks (mvlearn)")
     parser.add_argument("--embeddings-file", type=str, required=True, help="Path to embeddings .npy file")
     parser.add_argument("--nodes-csv", type=str, required=True, help="Path to nodes CSV file")
     parser.add_argument("--edges-csv", type=str, required=True, help="Path to edges CSV file")
     parser.add_argument("--n-clusters", type=int, default=40, help="Number of clusters")
+    parser.add_argument("--n-spectral-dims", type=int, default=50, help="Spectral embedding dimensionality")
     parser.add_argument("--k-neighbors", type=int, default=20, help="Number of neighbors for k-NN graph")
-    parser.add_argument("--output-dir", type=str, default="results/multiview_clustering", help="Output directory")
+    parser.add_argument("--output-dir", type=str, default="results/multiview_clustering_mvlearn",
+                        help="Output directory")
     parser.add_argument("--random-state", type=int, default=42, help="Random seed")
 
     args = parser.parse_args()
@@ -488,6 +588,7 @@ def main():
         nodes_csv=args.nodes_csv,
         edges_csv=args.edges_csv,
         n_clusters=args.n_clusters,
+        n_spectral_dims=args.n_spectral_dims,
         k_neighbors=args.k_neighbors,
         output_dir=args.output_dir,
         random_state=args.random_state

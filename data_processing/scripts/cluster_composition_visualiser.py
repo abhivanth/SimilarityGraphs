@@ -6,6 +6,7 @@ from pathlib import Path
 import argparse
 from typing import Dict, List, Tuple
 import warnings
+import textwrap
 
 warnings.filterwarnings('ignore')
 
@@ -520,16 +521,18 @@ class ArXivClusterVisualizer:
                 if top1_counts[i] < label_inside_threshold:
                     # Place label ABOVE the bar
                     label_y = total_top3_counts[i] + max_height * 0.08
+                    wrapped_text = textwrap.fill(f"1: {full_name} ({percentage:.1f}%)", width=24)
                     ax.text(cluster_id, label_y,
-                            f"1: {full_name} ({percentage:.1f}%)",
-                            ha='center', va='bottom', fontsize=8, fontweight='bold',
+                            wrapped_text,
+                            ha='center', va='bottom', fontsize=9, fontweight='bold',
                             color='#2E86AB',
                             bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
                                       alpha=0.9, edgecolor='#2E86AB', linewidth=1.5))
                 else:
                     # Place label inside
-                    ax.text(cluster_id, y_pos, f"{full_name}\n{percentage:.1f}%",
-                            ha='center', va='center', fontsize=8, fontweight='bold',
+                    wrapped_text = textwrap.fill(f"{full_name}\n{percentage:.1f}%", width=24)
+                    ax.text(cluster_id, y_pos, wrapped_text,
+                            ha='center', va='center', fontsize=9, fontweight='bold',
                             color='white')
 
             # Label for top 2 (middle segment)
@@ -541,15 +544,17 @@ class ArXivClusterVisualizer:
                 if top2_counts[i] < label_inside_threshold:
                     # Place label ABOVE the bar
                     label_y = total_top3_counts[i] + max_height * 0.16
+                    wrapped_text = textwrap.fill(f"2: {full_name} ({percentage:.1f}%)", width=24)
                     ax.text(cluster_id, label_y,
-                            f"2: {full_name} ({percentage:.1f}%)",
-                            ha='center', va='bottom', fontsize=8, fontweight='bold',
+                            wrapped_text,
+                            ha='center', va='bottom', fontsize=9, fontweight='bold',
                             color='#A23B72',
                             bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
                                       alpha=0.9, edgecolor='#A23B72', linewidth=1.5))
                 else:
-                    ax.text(cluster_id, y_pos, f"{full_name}\n{percentage:.1f}%",
-                            ha='center', va='center', fontsize=8, fontweight='bold',
+                    wrapped_text = textwrap.fill(f"{full_name}\n{percentage:.1f}%", width=24)
+                    ax.text(cluster_id, y_pos, wrapped_text,
+                            ha='center', va='center', fontsize=9, fontweight='bold',
                             color='white')
 
             # Label for top 3 (top segment)
@@ -561,15 +566,17 @@ class ArXivClusterVisualizer:
                 if top3_counts[i] < label_inside_threshold:
                     # Place label ABOVE the bar
                     label_y = total_top3_counts[i] + max_height * 0.24
+                    wrapped_text = textwrap.fill(f"3: {full_name} ({percentage:.1f}%)", width=24)
                     ax.text(cluster_id, label_y,
-                            f"3: {full_name} ({percentage:.1f}%)",
-                            ha='center', va='bottom', fontsize=8, fontweight='bold',
+                            wrapped_text,
+                            ha='center', va='bottom', fontsize=9, fontweight='bold',
                             color='#F18F01',
                             bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
                                       alpha=0.9, edgecolor='#F18F01', linewidth=1.5))
                 else:
-                    ax.text(cluster_id, y_pos, f"{full_name}\n{percentage:.1f}%",
-                            ha='center', va='center', fontsize=8, fontweight='bold',
+                    wrapped_text = textwrap.fill(f"{full_name}\n{percentage:.1f}%", width=24)
+                    ax.text(cluster_id, y_pos, wrapped_text,
+                            ha='center', va='center', fontsize=9, fontweight='bold',
                             color='white')
 
             # Add total paper count at the base of bar

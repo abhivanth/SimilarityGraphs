@@ -17,17 +17,19 @@ EDGES_CSV = "data_processing/data/processed/ogbn_arxiv_edges_stratified.csv"
 # RUN MULTIVIEW CLUSTERING
 # ==============================================================================
 
+from multiview_citation_clustering import MultiviewCitationClustering
+
 clustering = MultiviewCitationClustering(
     embeddings_file=EMBEDDINGS_FILE,
     nodes_csv=NODES_CSV,
     edges_csv=EDGES_CSV,
     n_clusters=10,
+    n_spectral_dims=50,  # NEW: dimensionality of spectral embedding
     k_neighbors=5,
-    output_dir="results/multiview_clustering",
+    output_dir="results/multiview_clustering_mvlearn",
     random_state=42
 )
 
-# Run complete pipeline
 results = clustering.run_complete_pipeline()
 
 # ==============================================================================
