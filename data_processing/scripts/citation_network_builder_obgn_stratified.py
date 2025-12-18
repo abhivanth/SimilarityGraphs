@@ -1,10 +1,8 @@
 import pandas as pd
 import os
-import time
 import gzip
 import numpy as np
 import re
-from typing import Dict
 from ogb.nodeproppred import PygNodePropPredDataset
 from sklearn.model_selection import train_test_split
 import arxiv
@@ -387,15 +385,16 @@ if __name__ == "__main__":
     # Initialize loader with stratified sampling
     # fetch_authors=True will get author info from arXiv API (slower but more complete)
     # fetch_authors=False will skip author fetching (faster)
-    loader = OGBArxivLoader(num_nodes=16900, stratified=True, random_state=42, fetch_authors=True)
+    arxiv_total_nodes = 169343
+    loader = OGBArxivLoader(num_nodes=arxiv_total_nodes, stratified=True, random_state=42, fetch_authors=False)
 
     # Load dataset and create nodes CSV with real paper data
     print("Loading OGB arXiv dataset and creating nodes CSV...")
-    nodes_df = loader.create_nodes_csv("../data/processed/ogbn_arxiv_nodes_stratified.csv")
+    nodes_df = loader.create_nodes_csv("../data/processed/ogbn_arxiv_nodes_full.csv")
 
     # Also create edges CSV for citation network
     print("\nCreating edges CSV...")
-    edges_df = loader.get_edge_list("../data/processed/ogbn_arxiv_edges_stratified.csv")
+    edges_df = loader.get_edge_list("../data/processed/ogbn_arxiv_edges_full.csv")
 
     print("\n" + "=" * 60)
     print("DATASET LOADING COMPLETE!")

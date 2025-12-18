@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import networkx as nx
 from sklearn.cluster import SpectralClustering
-from sklearn.metrics import adjusted_rand_score, silhouette_score
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.sparse import csr_matrix
@@ -10,7 +10,6 @@ import warnings
 import argparse
 import os
 import json
-from scipy.sparse.csgraph import shortest_path
 
 warnings.filterwarnings('ignore')
 
@@ -18,6 +17,7 @@ warnings.filterwarnings('ignore')
 class CitationNetworkClustering:
     """
     Performs spectral clustering on citation networks and evaluates against ground truth
+    Uses NMI (Normalized Mutual Information) instead of Silhouette Score
     """
 
     def __init__(self, nodes_csv_path: str, edges_csv_path: str):
@@ -173,7 +173,7 @@ class CitationNetworkClustering:
         return result_df, cluster_labels
 
     def calculate_evaluation_metrics(self, result_df, cluster_labels):
-        """Calculate ARI and Silhouette scores - FIXED for large graphs"""
+        """Calculate ARI and NMI scores"""
         print("\nCalculating evaluation metrics...")
 
         # Ground truth labels
@@ -183,46 +183,17 @@ class CitationNetworkClustering:
         # Adjusted Rand Index
         ari_score = adjusted_rand_score(ground_truth, predicted_clusters)
 
-        # Silhouette Score - FIXED FOR LARGE GRAPHS (17K+ nodes)
-        n_nodes = len(cluster_labels)
-        print(f"Graph size: {n_nodes} nodes")
-
-        if n_nodes > 10000:
-            print("Large graph detected. Using efficient sampling for silhouette score...")
-            silhouette_avg = self._calculate_silhouette_sampling(cluster_labels, sample_size=2000)
-        elif self.adjacency_matrix.shape[0] < 10000:  # Only for smaller matrices
-            try:
-                # Use shortest path distances instead of (1 - adjacency)
-
-                print("Computing graph distances for silhouette score...")
-                distance_matrix = shortest_path(
-                    self.adjacency_matrix,
-                    method='auto',
-                    directed=False,
-                    unweighted=True
-                )
-
-                # Handle infinite distances (disconnected components)
-                max_finite_dist = np.max(distance_matrix[np.isfinite(distance_matrix)])
-                distance_matrix[np.isinf(distance_matrix)] = max_finite_dist + 1
-
-                silhouette_avg = silhouette_score(
-                    distance_matrix,
-                    cluster_labels,
-                    metric='precomputed'
-                )
-            except Exception as e:
-                print(f"Graph-based silhouette calculation failed: {e}")
-                print("Falling back to sampling method...")
-                silhouette_avg = self._calculate_silhouette_sampling(cluster_labels)
-        else:
-            print("Matrix too large for standard silhouette calculation, using sampling...")
-            silhouette_avg = self._calculate_silhouette_sampling(cluster_labels)
+        # Normalized Mutual Information (NEW - replaces Silhouette)
+        nmi_score = normalized_mutual_info_score(
+            ground_truth,
+            predicted_clusters,
+            average_method='arithmetic'  # Options: 'min', 'geometric', 'arithmetic', 'max'
+        )
 
         # Store results
         metrics = {
             'adjusted_rand_index': ari_score,
-            'silhouette_score': silhouette_avg,
+            'normalized_mutual_info': nmi_score,
             'n_clusters_true': len(np.unique(ground_truth)),
             'n_clusters_predicted': len(np.unique(predicted_clusters)),
             'n_nodes': len(result_df)
@@ -233,81 +204,11 @@ class CitationNetworkClustering:
         # Print results
         print(f"\nEvaluation Results:")
         print(f"  Adjusted Rand Index: {ari_score:.4f}")
-        if silhouette_avg is not None:
-            print(f"  Silhouette Score: {silhouette_avg:.4f}")
-        else:
-            print(f"  Silhouette Score: Could not calculate")
+        print(f"  Normalized Mutual Information: {nmi_score:.4f}")
         print(f"  True clusters: {metrics['n_clusters_true']}")
         print(f"  Predicted clusters: {metrics['n_clusters_predicted']}")
 
         return metrics
-
-    def _calculate_silhouette_sampling(self, cluster_labels, sample_size=2000):
-        """NEW METHOD: Calculate silhouette using stratified sampling for large graphs"""
-        try:
-
-            n_nodes = len(cluster_labels)
-            print(f"Computing silhouette via sampling ({min(sample_size, n_nodes)} of {n_nodes} nodes)...")
-
-            if n_nodes <= sample_size:
-                sample_indices = np.arange(n_nodes)
-            else:
-                # Stratified sampling to maintain cluster proportions
-                sample_indices = []
-                unique_clusters = np.unique(cluster_labels)
-
-                for cluster_id in unique_clusters:
-                    cluster_mask = cluster_labels == cluster_id
-                    cluster_indices = np.where(cluster_mask)[0]
-
-                    # Sample proportionally from each cluster
-                    cluster_sample_size = max(1, int(len(cluster_indices) * sample_size / n_nodes))
-                    cluster_sample_size = min(cluster_sample_size, len(cluster_indices))
-
-                    if len(cluster_indices) > 0:
-                        sampled_from_cluster = np.random.choice(
-                            cluster_indices,
-                            size=cluster_sample_size,
-                            replace=False
-                        )
-                        sample_indices.extend(sampled_from_cluster)
-
-                sample_indices = np.array(sample_indices[:sample_size])
-
-            # Create subgraph adjacency matrix
-            sub_adjacency = self.adjacency_matrix[sample_indices][:, sample_indices]
-
-            # Calculate distances on subgraph
-            distance_matrix = shortest_path(
-                sub_adjacency,
-                method='auto',
-                directed=False,
-                unweighted=True
-            )
-
-            # Handle infinite distances
-            max_finite_dist = np.max(distance_matrix[np.isfinite(distance_matrix)])
-            distance_matrix[np.isinf(distance_matrix)] = max_finite_dist + 1
-
-            # Get cluster labels for sampled nodes
-            sampled_cluster_labels = cluster_labels[sample_indices]
-
-            # Calculate silhouette score
-            if len(np.unique(sampled_cluster_labels)) > 1:
-                sil_score = silhouette_score(
-                    distance_matrix,
-                    sampled_cluster_labels,
-                    metric='precomputed'
-                )
-                print(f"Silhouette score (sampled): {sil_score:.4f}")
-                return sil_score
-            else:
-                print("Only one cluster in sample, silhouette score undefined")
-                return None
-
-        except Exception as e:
-            print(f"Sampling silhouette calculation failed: {e}")
-            return None
 
     def analyze_cluster_composition(self, result_df, output_dir=None):
         """Analyze how well clusters match ground truth classes"""
@@ -344,7 +245,7 @@ class CitationNetworkClustering:
         print(f"  Best cluster purity: {purity_df['purity'].max():.4f}")
         print(f"  Worst cluster purity: {purity_df['purity'].min():.4f}")
 
-        # NEW: Detailed cluster composition analysis
+        # Detailed cluster composition analysis
         composition_analysis = self.analyze_detailed_cluster_composition(result_df)
 
         # Save composition analysis with output directory
@@ -359,7 +260,6 @@ class CitationNetworkClustering:
     def analyze_detailed_cluster_composition(self, result_df):
         """
         Comprehensive analysis of which class labels are present in each cluster.
-        Similar to the embedding clustering analysis.
 
         Args:
             result_df: DataFrame with clustering results including 'cluster_id' and 'class_idx'
@@ -488,10 +388,6 @@ class CitationNetworkClustering:
         except Exception as e:
             print(f"Warning: Could not save cluster composition to CSV: {e}")
 
-    def _print_detailed_cluster_composition(self, result_df):
-        """Legacy method - now calls the comprehensive analysis"""
-        return self.analyze_detailed_cluster_composition(result_df)
-
     def visualize_results(self, result_df, save_path=None):
         """Create visualizations of clustering results"""
         print("\nCreating visualizations...")
@@ -519,12 +415,11 @@ class CitationNetworkClustering:
         axes[1, 0].set_xlabel('Predicted Cluster')
         axes[1, 0].set_ylabel('True Class')
 
-        # 4. Metrics summary
+        # 4. Metrics summary (UPDATED - shows NMI instead of Silhouette)
         axes[1, 1].text(0.1, 0.8, f"Adjusted Rand Index: {self.clustering_results['adjusted_rand_index']:.4f}",
                         fontsize=12, transform=axes[1, 1].transAxes)
-        if self.clustering_results['silhouette_score'] is not None:
-            axes[1, 1].text(0.1, 0.6, f"Silhouette Score: {self.clustering_results['silhouette_score']:.4f}",
-                            fontsize=12, transform=axes[1, 1].transAxes)
+        axes[1, 1].text(0.1, 0.6, f"Normalized Mutual Info: {self.clustering_results['normalized_mutual_info']:.4f}",
+                        fontsize=12, transform=axes[1, 1].transAxes)
         axes[1, 1].text(0.1, 0.4, f"True Clusters: {self.clustering_results['n_clusters_true']}",
                         fontsize=12, transform=axes[1, 1].transAxes)
         axes[1, 1].text(0.1, 0.2, f"Predicted Clusters: {self.clustering_results['n_clusters_predicted']}",
@@ -545,7 +440,7 @@ class CitationNetworkClustering:
     def run_complete_analysis(self, n_clusters=None, save_results=True, output_dir="../results/"):
         """Run the complete clustering and evaluation pipeline"""
         print("=" * 60)
-        print("CITATION NETWORK CLUSTERING ANALYSIS")
+        print("CITATION NETWORK CLUSTERING ANALYSIS (WITH NMI)")
         print("=" * 60)
 
         # Create output directory
@@ -563,7 +458,7 @@ class CitationNetworkClustering:
         # 4. Perform clustering
         result_df, cluster_labels = self.perform_spectral_clustering(n_clusters=n_clusters)
 
-        # 5. Calculate metrics
+        # 5. Calculate metrics (ARI + NMI)
         metrics = self.calculate_evaluation_metrics(result_df, cluster_labels)
 
         # 6. Analyze composition
@@ -571,7 +466,7 @@ class CitationNetworkClustering:
 
         # 7. Visualize results
         if save_results:
-            viz_path = os.path.join(output_dir, "citation_clustering_analysis.png")
+            viz_path = os.path.join(output_dir, "citation_clustering_analysis_nmi.png")
             self.visualize_results(result_df, save_path=viz_path)
         else:
             self.visualize_results(result_df)
@@ -586,7 +481,7 @@ class CitationNetworkClustering:
             result_df.to_csv(result_path, index=False)
 
             # Save metrics (including composition analysis)
-            metrics_path = os.path.join(output_dir, "citation_clustering_metrics.json")
+            metrics_path = os.path.join(output_dir, "citation_clustering_metrics_nmi.json")
             with open(metrics_path, 'w') as f:
                 json.dump(metrics, f, indent=2)
 
@@ -605,7 +500,7 @@ class CitationNetworkClustering:
 
 def main():
     """Main function with command line argument parsing"""
-    parser = argparse.ArgumentParser(description="Run spectral clustering on citation networks")
+    parser = argparse.ArgumentParser(description="Run spectral clustering on citation networks with NMI evaluation")
 
     parser.add_argument(
         "--nodes-csv",
@@ -660,8 +555,7 @@ def main():
 
     print("\nKey Results for Comparison:")
     print(f"ARI Score: {metrics['adjusted_rand_index']:.4f}")
-    if metrics['silhouette_score'] is not None:
-        print(f"Silhouette Score: {metrics['silhouette_score']:.4f}")
+    print(f"NMI Score: {metrics['normalized_mutual_info']:.4f}")
     print(f"Average Cluster Purity: {purity_df['purity'].mean():.4f}")
 
     # Print composition summary

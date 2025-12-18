@@ -44,6 +44,9 @@ MODEL_CONFIGS = {
     "qwen-2.5-7b": "Qwen/Qwen2.5-7B-Instruct",
     "qwen-3-32b-awq": "Qwen/Qwen3-32B-AWQ",
     "qwen-3-32B-FP8" : "Qwen/Qwen3-32B-FP8",
+    "qwen-3-8B-embedding"  : "Qwen/Qwen3-Embedding-8B",
+
+    "tencent-kalm-12B":"tencent/KaLM-Embedding-Gemma3-12B-2511",
 
     # DeepSeek models
     "deepseek-qwen-32b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
@@ -301,9 +304,13 @@ class CUDAOptimizedEmbeddingGenerator:
             }
 
             if self.use_cuda:
-                model_kwargs.update({
-                    'torch_dtype': torch.float16
-                })
+                if torch.cuda.device_count() > 1:
+                    self.logger.info(f"Detected {torch.cuda.device_count()} GPUs - using device_map='auto'")
+                    model_kwargs.update({
+                        'torch_dtype': torch.float16,
+                        'device_map': 'auto',
+                        'max_memory': {i: '46GB' for i in range(torch.cuda.device_count())}
+                    })
             else:
                 model_kwargs['torch_dtype'] = torch.float32
 
@@ -328,17 +335,19 @@ class CUDAOptimizedEmbeddingGenerator:
 
             self.model.eval()
 
-            if self.use_cuda:
-                try:
+            # Only move to device if device_map wasn't used
+            if 'device_map' not in model_kwargs:
+                if self.use_cuda:
+                    try:
+                        self.model = self.model.to(self.device)
+                    except RuntimeError as e:
+                        if "meta tensor" in str(e):
+                            self.logger.info("Using to_empty() for meta tensor compatibility")
+                            self.model = self.model.to_empty(device=self.device)
+                        else:
+                            raise e
+                else:
                     self.model = self.model.to(self.device)
-                except RuntimeError as e:
-                    if "meta tensor" in str(e):
-                        self.logger.info("Using to_empty() for meta tensor compatibility")
-                        self.model = self.model.to_empty(device=self.device)
-                    else:
-                        raise e
-            else:
-                self.model = self.model.to(self.device)
 
             self.logger.info("✓ Model loaded successfully")
 
@@ -386,10 +395,12 @@ class CUDAOptimizedEmbeddingGenerator:
                     )
 
                     # Move to device efficiently
-                    if self.use_cuda:
+                    # When using device_map='auto', don't manually move inputs
+                    if self.use_cuda and not hasattr(self.model, 'hf_device_map'):
                         inputs = {k: v.to(self.device, non_blocking=True) for k, v in inputs.items()}
-                    else:
+                    elif not self.use_cuda:
                         inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                    # If using device_map, let the model handle device placement automatically
 
                     # Generate embeddings
                     with torch.no_grad():

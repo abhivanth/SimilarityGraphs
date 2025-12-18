@@ -271,10 +271,10 @@ class SpectralClusteringPipeline:
         log_memory_usage("Before evaluation")
 
         # Silhouette Score
-        logging.info("Computing silhouette score...")
-        self.silhouette_avg = silhouette_score(embeddings, self.cluster_labels)
-        metrics['silhouette_score'] = self.silhouette_avg
-        logging.info(f"Silhouette score: {self.silhouette_avg:.4f}")
+        # logging.info("Computing silhouette score...")
+        # self.silhouette_avg = silhouette_score(embeddings, self.cluster_labels)
+        # metrics['silhouette_score'] = self.silhouette_avg
+        # logging.info(f"Silhouette score: {self.silhouette_avg:.4f}")
 
         # Adjusted Rand Index (if ground truth available)
         if ground_truth_labels is not None:
@@ -545,7 +545,6 @@ class SpectralClusteringPipeline:
         cluster_info = {
             'n_clusters': len(unique_labels),
             'cluster_sizes': dict(zip(unique_labels.tolist(), counts.tolist())),
-            'silhouette_score': self.silhouette_avg,
             'adjusted_rand_index': self.ari_score,
             'largest_cluster_size': int(np.max(counts)),
             'smallest_cluster_size': int(np.min(counts)),
@@ -942,7 +941,7 @@ def main():
     print("\n" + "=" * 60)
     print("EMBEDDING-BASED SPECTRAL CLUSTERING COMPLETED")
     print("=" * 60)
-    print(f"Silhouette Score: {results['evaluation_metrics']['silhouette_score']:.4f}")
+    # print(f"Silhouette Score: {results['evaluation_metrics']['silhouette_score']:.4f}")
     print(f"Number of clusters: {results['n_clusters']}")
     print(f"Number of papers: {results['n_papers']}")
     print(f"Results saved to: {args.output_dir}")

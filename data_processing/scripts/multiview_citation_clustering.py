@@ -28,7 +28,7 @@ class MultiviewCitationClustering:
             edges_csv: str,
             n_clusters: int = 40,
             n_spectral_dims: int = 50,  # NEW: dimensionality for spectral embedding
-            k_neighbors: int = 20,
+            k_neighbors: int = 3,
             output_dir: str = "results/multiview_clustering",
             random_state: int = 42
     ):
