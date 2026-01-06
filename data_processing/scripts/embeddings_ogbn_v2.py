@@ -35,18 +35,13 @@ except LookupError:
 MODEL_CONFIGS = {
     # LLaMA models
     "llama-3.2-3b": "meta-llama/Llama-3.2-3B",
-    "llama-3.1-3b": "meta-llama/Llama-3.1-3B",
-    "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
-    "llama-2-7b": "meta-llama/Llama-2-7b-hf",
+    "llama-3.1-8B": "meta-llama/Llama-3.1-8B",
 
     # Qwen models
     "qwen-3.3-32b": "Qwen/Qwen2.5-32B",
     "qwen-2.5-7b": "Qwen/Qwen2.5-7B-Instruct",
     "qwen-3-32b-awq": "Qwen/Qwen3-32B-AWQ",
-    "qwen-3-32B-FP8" : "Qwen/Qwen3-32B-FP8",
     "qwen-3-8B-embedding"  : "Qwen/Qwen3-Embedding-8B",
-
-    "tencent-kalm-12B":"tencent/KaLM-Embedding-Gemma3-12B-2511",
 
     # DeepSeek models
     "deepseek-qwen-32b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
@@ -83,20 +78,19 @@ class CUDAOptimizedEmbeddingGenerator:
         self.stopwords_lang = stopwords_lang
 
         self.device = self._setup_device(device)
+        print("Running on:", self.device)
         self.tokenizer = None
         self.model = None
 
         # CUDA optimization settings
         self.use_cuda = self.device == "cuda"
-        self.mixed_precision = self.use_cuda
 
         # Memory optimization settings
         self.max_batch_size = self._get_optimal_batch_size()
-        self.gradient_checkpointing = self.use_cuda
+        self.mixed_precision = False
+        self.gradient_checkpointing = False
 
-        # Initialize CUDA optimizations
-        if self.use_cuda:
-            self._setup_cuda_optimizations()
+        # Initialize CUDA optimization
 
         # Initialize stopwords if needed
         if self.remove_stopwords:
@@ -141,15 +135,18 @@ class CUDAOptimizedEmbeddingGenerator:
             return 'auto'
 
     def _setup_device(self, device: Optional[str]) -> str:
-        """Setup computation device with CUDA optimizations."""
         if device:
             return device
 
         if torch.cuda.is_available():
-            gpu_name = torch.cuda.get_device_name(0)
-            memory_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
-            self.logger.info(f"CUDA available: {gpu_name} ({memory_gb:.1f}GB)")
-            return "cuda"
+            gpu_id = torch.cuda.current_device()
+            gpu_name = torch.cuda.get_device_name(gpu_id)
+            memory_gb = torch.cuda.get_device_properties(gpu_id).total_memory / (1024 ** 3)
+
+            self.logger.info(
+                f"Using single GPU cuda:{gpu_id} → {gpu_name} ({memory_gb:.1f}GB)"
+            )
+            return f"cuda:{gpu_id}"
         else:
             self.logger.info("CUDA not available, using CPU")
             return "cpu"
@@ -304,13 +301,7 @@ class CUDAOptimizedEmbeddingGenerator:
             }
 
             if self.use_cuda:
-                if torch.cuda.device_count() > 1:
-                    self.logger.info(f"Detected {torch.cuda.device_count()} GPUs - using device_map='auto'")
-                    model_kwargs.update({
-                        'torch_dtype': torch.float16,
-                        'device_map': 'auto',
-                        'max_memory': {i: '46GB' for i in range(torch.cuda.device_count())}
-                    })
+                model_kwargs['torch_dtype'] = torch.float16
             else:
                 model_kwargs['torch_dtype'] = torch.float32
 
@@ -336,18 +327,7 @@ class CUDAOptimizedEmbeddingGenerator:
             self.model.eval()
 
             # Only move to device if device_map wasn't used
-            if 'device_map' not in model_kwargs:
-                if self.use_cuda:
-                    try:
-                        self.model = self.model.to(self.device)
-                    except RuntimeError as e:
-                        if "meta tensor" in str(e):
-                            self.logger.info("Using to_empty() for meta tensor compatibility")
-                            self.model = self.model.to_empty(device=self.device)
-                        else:
-                            raise e
-                else:
-                    self.model = self.model.to(self.device)
+            self.model = self.model.to(self.device)
 
             self.logger.info("✓ Model loaded successfully")
 
@@ -370,7 +350,7 @@ class CUDAOptimizedEmbeddingGenerator:
         hidden_size = getattr(self.model.config, 'hidden_size', 768)
 
         # Enable autocast for mixed precision
-        autocast_context = torch.cuda.amp.autocast() if self.mixed_precision else torch.no_grad()
+        autocast_context = torch.no_grad()
 
         with autocast_context:
             for i in tqdm(range(0, len(texts), batch_size), desc=f"Generating embeddings (batch={batch_size})"):
@@ -396,10 +376,7 @@ class CUDAOptimizedEmbeddingGenerator:
 
                     # Move to device efficiently
                     # When using device_map='auto', don't manually move inputs
-                    if self.use_cuda and not hasattr(self.model, 'hf_device_map'):
-                        inputs = {k: v.to(self.device, non_blocking=True) for k, v in inputs.items()}
-                    elif not self.use_cuda:
-                        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                    inputs = {k: v.to(self.device) for k, v in inputs.items()}
                     # If using device_map, let the model handle device placement automatically
 
                     # Generate embeddings
@@ -421,10 +398,7 @@ class CUDAOptimizedEmbeddingGenerator:
                             embeddings_tensor = sum_embeddings / sum_mask
 
                         # Convert to numpy efficiently
-                        if self.use_cuda:
-                            batch_embeddings = embeddings_tensor.cpu().numpy()
-                        else:
-                            batch_embeddings = embeddings_tensor.numpy()
+                        batch_embeddings = embeddings_tensor.detach().cpu().numpy()
 
                 embeddings.append(batch_embeddings)
 

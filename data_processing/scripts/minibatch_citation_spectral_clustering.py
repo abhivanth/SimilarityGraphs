@@ -27,15 +27,15 @@ def log_memory_usage(step_name: str):
 
 
 class StratifiedCitationSampler:
-    """Create stratified sample of nodes with neighborhood expansion preserving class distribution."""
+    """Create stratified sample of nodes preserving class distribution with optional neighborhood expansion."""
 
-    def __init__(self, stratified_ratio: float = 0.1, include_neighbors: bool = True, random_state: int = 42):
+    def __init__(self, stratified_ratio: float = 0.1, include_neighbors: bool = False, random_state: int = 42):
         """
         Initialize stratified sampler.
 
         Args:
-            stratified_ratio: Ratio of seed nodes to sample (e.g., 0.1 for 10%)
-            include_neighbors: If True, add all neighbors of seed nodes to sample
+            stratified_ratio: Ratio of data to sample (e.g., 0.1 for 10%)
+            include_neighbors: Whether to include 1-hop neighbors of seed nodes
             random_state: Random state for reproducibility
         """
         self.stratified_ratio = stratified_ratio
@@ -46,7 +46,7 @@ class StratifiedCitationSampler:
                                  nodes_df: pd.DataFrame,
                                  edges_df: pd.DataFrame = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
-        Create stratified sample with neighborhood expansion and return both stratified and remaining sets.
+        Create stratified sample with optional neighborhood expansion.
 
         Args:
             nodes_df: DataFrame with columns ['node_id', 'class_idx', ...]
@@ -55,11 +55,11 @@ class StratifiedCitationSampler:
         Returns:
             Tuple of (stratified_df, remaining_df)
         """
-        logging.info(
-            f"Creating stratified sample with ratio={self.stratified_ratio}, include_neighbors={self.include_neighbors}")
+        logging.info(f"Creating stratified sample with ratio={self.stratified_ratio}, "
+                     f"include_neighbors={self.include_neighbors}")
         log_memory_usage("Before stratified sampling")
 
-        # Step 1: Perform stratified split to get seed nodes
+        # Step 1: Perform stratified split (seed nodes)
         seed_df, remaining_df = train_test_split(
             nodes_df,
             test_size=(1 - self.stratified_ratio),
@@ -67,46 +67,60 @@ class StratifiedCitationSampler:
             random_state=self.random_state
         )
 
+        seed_node_ids = set(seed_df['node_id'].tolist())
         logging.info(f"Seed sample size: {len(seed_df)} ({self.stratified_ratio:.1%})")
 
         # Step 2: Expand with neighbors if enabled
         if self.include_neighbors and edges_df is not None:
-            seed_node_ids = set(seed_df['node_id'].tolist())
+            logging.info("Performing neighborhood expansion (1-hop)...")
 
-            # Find all neighbors of seed nodes
+            # Find all 1-hop neighbors
             neighbors_out = set(edges_df[edges_df['source'].isin(seed_node_ids)]['target'].tolist())
             neighbors_in = set(edges_df[edges_df['target'].isin(seed_node_ids)]['source'].tolist())
             all_neighbors = (neighbors_out | neighbors_in) - seed_node_ids
 
             logging.info(f"Found {len(all_neighbors)} neighbor nodes (1-hop)")
 
-            # Add neighbors to stratified sample
-            neighbor_nodes = nodes_df[nodes_df['node_id'].isin(all_neighbors)]
-            stratified_df = pd.concat([seed_df, neighbor_nodes], ignore_index=True)
+            # Get neighbor rows from nodes_df
+            neighbor_df = nodes_df[nodes_df['node_id'].isin(all_neighbors)]
 
-            # Update remaining nodes (exclude seed + neighbors)
-            all_stratified_ids = set(stratified_df['node_id'].tolist())
-            remaining_df = nodes_df[~nodes_df['node_id'].isin(all_stratified_ids)]
+            if len(neighbor_df) > 0:
+                # Combine seed + neighbors
+                stratified_df = pd.concat([seed_df, neighbor_df], ignore_index=True)
 
-            logging.info(f"Enhanced stratified sample size: {len(stratified_df)} (seed + neighbors)")
-            logging.info(f"  - Seed nodes: {len(seed_df)}")
-            logging.info(f"  - Neighbor nodes added: {len(neighbor_nodes)}")
-            logging.info(f"  - Expansion ratio: {len(stratified_df) / len(seed_df):.2f}x")
+                # Update remaining (exclude seed + neighbors)
+                all_stratified_ids = set(stratified_df['node_id'].tolist())
+                remaining_df = nodes_df[~nodes_df['node_id'].isin(all_stratified_ids)].reset_index(drop=True)
+
+                logging.info(f"Enhanced stratified sample size: {len(stratified_df)} "
+                             f"(seed + neighbors)")
+                logging.info(f"  - Seed nodes: {len(seed_df)}")
+                logging.info(f"  - Neighbor nodes added: {len(neighbor_df)}")
+                logging.info(f"  - Expansion ratio: {len(stratified_df) / len(seed_df):.2f}x")
+            else:
+                logging.warning("No neighbors found in dataset, using seed nodes only")
+                stratified_df = seed_df
         else:
+            if self.include_neighbors:
+                logging.info("Neighborhood expansion enabled but no edges provided")
+            else:
+                logging.info("No neighborhood expansion (using seed nodes only)")
             stratified_df = seed_df
-            logging.info("No neighborhood expansion (using seed nodes only)")
 
-        logging.info(f"Final stratified sample size: {len(stratified_df)} ({len(stratified_df) / len(nodes_df):.1%})")
-        logging.info(f"Remaining sample size: {len(remaining_df)} ({len(remaining_df) / len(nodes_df):.1%})")
+        # Step 3: Log final sizes and distributions
+        logging.info(f"Final stratified sample size: {len(stratified_df)} "
+                     f"({len(stratified_df) / len(nodes_df):.1%})")
+        logging.info(f"Remaining sample size: {len(remaining_df)} "
+                     f"({len(remaining_df) / len(nodes_df):.1%})")
 
-        # Verify class distribution of seed nodes (neighbors may have different distribution)
+        # Verify class distribution preservation (track both seed and enhanced)
         original_dist = dict(zip(*np.unique(nodes_df['class_idx'], return_counts=True)))
         seed_dist = dict(zip(*np.unique(seed_df['class_idx'], return_counts=True)))
 
         logging.info("Original class distribution (counts): %s", original_dist)
         logging.info("Seed class distribution (counts): %s", seed_dist)
 
-        if self.include_neighbors:
+        if self.include_neighbors and len(stratified_df) > len(seed_df):
             stratified_dist = dict(zip(*np.unique(stratified_df['class_idx'], return_counts=True)))
             logging.info("Enhanced stratified class distribution (counts): %s", stratified_dist)
 
@@ -259,63 +273,29 @@ class CitationVectorizer:
 
     def compute_citation_similarity(self,
                                     remaining_nodes: List[int],
-                                    stratified_nodes: List[int],
-                                    batch_size: int = 5000) -> np.ndarray:
+                                    stratified_nodes: List[int]) -> np.ndarray:
         """
         Compute cosine similarity between remaining and stratified nodes based on citations.
-        Uses batching to avoid memory overflow.
 
         Args:
             remaining_nodes: List of remaining node IDs
             stratified_nodes: List of stratified node IDs
-            batch_size: Number of remaining nodes to process at once
 
         Returns:
             Similarity matrix (n_remaining x n_stratified)
         """
-        n_remaining = len(remaining_nodes)
-        n_stratified = len(stratified_nodes)
-
-        logging.info(f"Computing citation similarity for {n_remaining} remaining nodes...")
-        logging.info(f"  Processing in batches of {batch_size} to save memory")
+        logging.info(f"Computing citation similarity for {len(remaining_nodes)} remaining nodes...")
         log_memory_usage("Before citation similarity")
 
-        # Pre-compute stratified vectors once
-        logging.info(f"Building citation vectors for {n_stratified} stratified nodes...")
+        # Build citation vectors
+        remaining_vectors = np.array([self.get_citation_vector(node) for node in remaining_nodes])
         stratified_vectors = np.array([self.get_citation_vector(node) for node in stratified_nodes])
 
-        # Process remaining nodes in batches
-        n_batches = (n_remaining + batch_size - 1) // batch_size
-        logging.info(f"Processing {n_remaining} remaining nodes in {n_batches} batches...")
-
-        similarity_batches = []
-        for i in range(n_batches):
-            start_idx = i * batch_size
-            end_idx = min((i + 1) * batch_size, n_remaining)
-            batch_nodes = remaining_nodes[start_idx:end_idx]
-
-            # Build vectors for this batch
-            batch_vectors = np.array([self.get_citation_vector(node) for node in batch_nodes])
-
-            # Compute similarity for this batch
-            batch_similarity = cosine_similarity(batch_vectors, stratified_vectors)
-            similarity_batches.append(batch_similarity)
-
-            if (i + 1) % 5 == 0 or (i + 1) == n_batches:
-                logging.info(f"  Processed batch {i + 1}/{n_batches} ({end_idx}/{n_remaining} nodes)")
-                log_memory_usage(f"After batch {i + 1}")
-
-            # Cleanup
-            del batch_vectors
-            del batch_similarity
-            gc.collect()
-
-        # Concatenate all batches
-        logging.info("Concatenating similarity batches...")
-        similarity_matrix = np.vstack(similarity_batches)
+        # Compute cosine similarity
+        similarity_matrix = cosine_similarity(remaining_vectors, stratified_vectors)
 
         log_memory_usage("After citation similarity")
-        logging.info(f"Citation similarity computation completed: {similarity_matrix.shape}")
+        logging.info("Citation similarity computation completed")
 
         return similarity_matrix
 
@@ -510,7 +490,7 @@ class MiniBatchCitationSpectralClusteringPipeline:
                  n_clusters: int = 40,
                  projection_k: int = 3,
                  stratified_ratio: float = 0.1,
-                 include_neighbors: bool = True,
+                 include_neighbors: bool = False,
                  output_dir: str = "results/citation_minibatch_spectral_clustering",
                  random_state: int = 42):
         """
@@ -521,8 +501,8 @@ class MiniBatchCitationSpectralClusteringPipeline:
             edges_csv: Path to edges CSV file (columns: source, target)
             n_clusters: Number of clusters
             projection_k: Number of neighbors for projecting remaining nodes
-            stratified_ratio: Ratio of seed nodes to sample (e.g., 0.1 for 10%)
-            include_neighbors: If True, add all neighbors of seed nodes (recommended)
+            stratified_ratio: Ratio of stratified sample (e.g., 0.1 for 10%)
+            include_neighbors: Include 1-hop neighbors of stratified sample
             output_dir: Output directory for results
             random_state: Random state for reproducibility
         """
@@ -588,9 +568,10 @@ class MiniBatchCitationSpectralClusteringPipeline:
         log_memory_usage("After loading data")
 
     def create_stratified_sample(self):
-        """Create stratified sample with neighborhood expansion."""
+        """Create stratified sample with optional neighborhood expansion."""
         self.stratified_df, self.remaining_df = self.sampler.create_stratified_sample(
-            self.nodes_df, self.edges_df
+            self.nodes_df,
+            self.edges_df
         )
 
     def run_clustering(self) -> Dict[str, Any]:
@@ -995,6 +976,7 @@ class MiniBatchCitationSpectralClusteringPipeline:
         print("=" * 80)
         print(f"Method: {results['method']}")
         print(f"Stratified ratio: {results['stratified_ratio']:.1%}")
+        print(f"Include neighbors: {results['include_neighbors']}")
         print(f"Projection k: {results['projection_k']}")
         print(f"Total papers: {results['n_papers_total']}")
         print(f"Stratified papers: {results['n_papers_stratified']}")
@@ -1051,14 +1033,19 @@ def main():
         "--stratified-ratio",
         type=float,
         default=0.1,
-        help="Ratio of seed nodes to sample (default: 0.1 for 10%%)"
+        help="Ratio of stratified sample (default: 0.1 for 10%%)"
     )
     parser.add_argument(
-        "--no-include-neighbors",
-        dest="include_neighbors",
+        "--include-neighbors",
+        action="store_true",
+        default=False,
+        help="Include 1-hop neighbors of stratified sample (default: False)"
+    )
+    parser.add_argument(
+        "--no-neighbors",
         action="store_false",
-        default=True,
-        help="Do NOT include neighbors (use seed nodes only). By default, neighbors ARE included."
+        dest="include_neighbors",
+        help="Explicitly disable neighborhood expansion"
     )
     parser.add_argument(
         "--output-dir",
