@@ -118,15 +118,15 @@ class CitationEigenGapAnalysis:
 
         gaps = np.diff(eigenvals[:self.max_k + 1])
 
-        # Find largest absolute gap
-        optimal_k = np.argmax(gaps) + 1
-
-        # Compute relative gaps for additional analysis
+        # Compute relative gaps (primary metric)
         relative_gaps = gaps / (eigenvals[1:self.max_k + 1] + 1e-10)
-        optimal_k_relative = np.argmax(relative_gaps) + 1
+        optimal_k = np.argmax(relative_gaps) + 1
 
-        # Top 3 recommendations
-        top_3_indices = np.argsort(gaps)[-3:][::-1]
+        # Absolute gap as alternative
+        optimal_k_absolute = np.argmax(gaps) + 1
+
+        # Top 3 recommendations (based on relative gaps)
+        top_3_indices = np.argsort(relative_gaps)[-3:][::-1]
         top_3_k = top_3_indices + 1
 
         return {
@@ -134,9 +134,10 @@ class CitationEigenGapAnalysis:
             'gaps': gaps,
             'relative_gaps': relative_gaps,
             'optimal_k': optimal_k,
-            'optimal_k_relative': optimal_k_relative,
+            'optimal_k_absolute': optimal_k_absolute,
             'top_3_k': top_3_k,
             'largest_gap': gaps[optimal_k - 1],
+            'largest_relative_gap': relative_gaps[optimal_k - 1],
             'n_zero_eigenvals': np.sum(eigenvals < 1e-8),
             'spectral_gap': eigenvals[1] - eigenvals[0] if len(eigenvals) > 1 else 0
         }
@@ -147,31 +148,32 @@ class CitationEigenGapAnalysis:
 
         eigenvals = results['eigenvalues']
         gaps = results['gaps']
+        relative_gaps = results['relative_gaps']
         optimal_k = results['optimal_k']
-        optimal_k_relative = results['optimal_k_relative']
+        optimal_k_absolute = results['optimal_k_absolute']
 
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
 
         # Plot 1: Eigenvalues
         ax1.plot(range(1, len(eigenvals) + 1), eigenvals, 'bo-', markersize=3)
         ax1.axvline(optimal_k, color='red', linestyle='--',
-                    label=f'Optimal k={optimal_k} (abs gap)', linewidth=2)
-        if optimal_k_relative != optimal_k:
-            ax1.axvline(optimal_k_relative, color='green', linestyle='--',
-                        label=f'k={optimal_k_relative} (rel gap)', linewidth=2)
+                    label=f'Optimal k={optimal_k} (rel gap)', linewidth=2)
+        if optimal_k_absolute != optimal_k:
+            ax1.axvline(optimal_k_absolute, color='green', linestyle='--',
+                        label=f'k={optimal_k_absolute} (abs gap)', linewidth=2)
         ax1.set_xlabel('Index')
         ax1.set_ylabel('Eigenvalue')
         ax1.set_title(f'Citation Network Eigenvalues ({self.n_nodes:,} nodes)')
         ax1.legend()
         ax1.grid(True, alpha=0.3)
 
-        # Plot 2: Gaps
-        bars = ax2.bar(range(1, len(gaps) + 1), gaps, alpha=0.7, color='lightblue')
+        # Plot 2: Relative Gaps (primary)
+        bars = ax2.bar(range(1, len(relative_gaps) + 1), relative_gaps, alpha=0.7, color='lightblue')
         bars[optimal_k - 1].set_color('red')
         bars[optimal_k - 1].set_alpha(0.9)
         ax2.set_xlabel('k')
-        ax2.set_ylabel('Gap')
-        ax2.set_title('Eigenvalue Gaps')
+        ax2.set_ylabel('Relative Gap')
+        ax2.set_title('Relative Eigenvalue Gaps (Primary)')
         ax2.grid(True, alpha=0.3)
 
         # Plot 3: Eigenvalues (log scale)
@@ -183,14 +185,14 @@ class CitationEigenGapAnalysis:
         ax3.set_title('Eigenvalues (Log Scale)')
         ax3.grid(True, alpha=0.3)
 
-        # Plot 4: Top gaps highlighted
-        ax4.bar(range(1, len(gaps) + 1), gaps, alpha=0.5, color='lightgray')
+        # Plot 4: Top gaps highlighted (based on relative gaps)
+        ax4.bar(range(1, len(relative_gaps) + 1), relative_gaps, alpha=0.5, color='lightgray')
         for i, k in enumerate(results['top_3_k']):
             color = ['red', 'orange', 'yellow'][i]
-            bars = ax4.bar(k, gaps[k - 1], color=color, alpha=0.9,
-                           label=f'#{i + 1}: k={k}')
+            ax4.bar(k, relative_gaps[k - 1], color=color, alpha=0.9,
+                    label=f'#{i + 1}: k={k}')
         ax4.set_xlabel('k')
-        ax4.set_ylabel('Gap')
+        ax4.set_ylabel('Relative Gap')
         ax4.set_title('Top 3 Gap Recommendations')
         ax4.legend()
         ax4.grid(True, alpha=0.3)
@@ -225,17 +227,17 @@ class CitationEigenGapAnalysis:
             f.write(f"=====================================\n")
             f.write(f"Dataset: {self.n_nodes:,} nodes, {len(self.edges_df):,} citations\n")
             f.write(f"Method: LOBPCG eigenvalue solver\n\n")
-            f.write(f"🎯 PRIMARY RECOMMENDATION: k = {results['optimal_k']}\n")
-            f.write(f"📊 Largest gap: {results['largest_gap']:.6f}\n")
-            f.write(f"📈 Alternative (relative gap): k = {results['optimal_k_relative']}\n")
+            f.write(f"🎯 PRIMARY RECOMMENDATION: k = {results['optimal_k']} (relative gap)\n")
+            f.write(f"📊 Largest relative gap: {results['largest_relative_gap']:.6f}\n")
+            f.write(f"📈 Alternative (absolute gap): k = {results['optimal_k_absolute']}\n")
             f.write(f"⭐ Top 3 recommendations: {results['top_3_k']}\n")
             f.write(f"🔍 Zero eigenvalues: {results['n_zero_eigenvals']}\n")
             f.write(f"📏 Spectral gap: {results['spectral_gap']:.6f}\n")
 
         # Print summary
-        print(f"\n🎯 OPTIMAL K: {results['optimal_k']}")
-        print(f"📊 Largest gap: {results['largest_gap']:.6f}")
-        print(f"📈 Alternative: k = {results['optimal_k_relative']} (relative gap)")
+        print(f"\n🎯 OPTIMAL K: {results['optimal_k']} (relative gap)")
+        print(f"📊 Largest relative gap: {results['largest_relative_gap']:.6f}")
+        print(f"📈 Alternative: k = {results['optimal_k_absolute']} (absolute gap)")
         print(f"⭐ Top 3: {results['top_3_k']}")
         print(f"💾 Results saved to: {output_dir}")
 
