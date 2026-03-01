@@ -3,14 +3,12 @@ import pandas as pd
 import os
 import gzip
 import time
-from typing import Dict, List, Tuple
+from typing import Dict
 from ogb.nodeproppred import PygNodePropPredDataset
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score, adjusted_rand_score
-from sklearn.metrics import normalized_mutual_info_score, homogeneity_score, completeness_score
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.metrics import adjusted_rand_score
+from sklearn.metrics import normalized_mutual_info_score
 from collections import Counter
 import argparse
 import logging
@@ -19,11 +17,11 @@ import logging
 class OGBArxivKMeansAnalyzer:
     """
     K-means clustering analysis on OGB-Arxiv pre-computed 128-dimensional embeddings
-    with stratified sampling and comprehensive evaluation.
+    or custom LLM embeddings with stratified sampling and comprehensive evaluation.
     """
 
     def __init__(self, sample_ratio: float = 0.1, random_state: int = 42,
-                 stratified_embeddings: str = None):
+                 stratified_embeddings: str = None, llm_embedding_dim: int = None):
         """
         Initialize the K-means analyzer.
 
@@ -31,11 +29,16 @@ class OGBArxivKMeansAnalyzer:
             sample_ratio: Fraction of dataset to use (default: 0.1 for 10%)
             random_state: Random seed for reproducibility
             stratified_embeddings: Path to pre-computed stratified embeddings file (.npy)
-                                 Format: [128-dim embeddings, node_id, class_label]
+                                 Format: [embedding_dims, node_id, class_label]
+            llm_embedding_dim: Dimension of LLM embeddings (e.g., 3072, 4096).
+                              If None, assumes 128-dim OGB embeddings.
         """
         self.sample_ratio = sample_ratio
         self.random_state = random_state
         self.stratified_embeddings = stratified_embeddings
+        self.llm_embedding_dim = llm_embedding_dim
+        # Determine embedding dimension: use LLM dim if provided, otherwise default to 128 (OGB)
+        self.embedding_dim = llm_embedding_dim if llm_embedding_dim is not None else 128
         self.dataset = None
         self.data = None
         self.class_names = {}
@@ -144,7 +147,10 @@ class OGBArxivKMeansAnalyzer:
     def load_stratified_embeddings(self):
         """
         Load pre-computed stratified embeddings from file.
-        Expected format: [128-dim embeddings, node_id, class_label]
+        Expected format: [embedding_dims, node_id, class_label]
+
+        For OGB embeddings: 128 dims + node_id + class_label = 130 columns
+        For LLM embeddings: llm_embedding_dim + node_id + class_label columns
         """
         if not self.stratified_embeddings or not os.path.exists(self.stratified_embeddings):
             raise FileNotFoundError(f"Stratified embeddings file not found: {self.stratified_embeddings}")
@@ -156,28 +162,45 @@ class OGBArxivKMeansAnalyzer:
 
         self.logger.info(f"Loaded embeddings shape: {embeddings_with_labels.shape}")
 
-        # Validate format
-        if embeddings_with_labels.shape[1] != 130:  # 128 + node_id + class_label
-            raise ValueError(
-                f"Expected 130 columns [128-dim + node_id + class_label], got {embeddings_with_labels.shape[1]}")
+        # Determine expected columns based on embedding dimension
+        expected_columns = self.embedding_dim + 2  # embedding_dim + node_id + class_label
 
-        # Extract components
-        self.embeddings = embeddings_with_labels[:, :128].astype(np.float32)  # First 128 dimensions
-        self.node_ids = embeddings_with_labels[:, 128].astype(np.int32)  # Node IDs
-        self.labels = embeddings_with_labels[:, 129].astype(np.int32)  # Class labels
+        # Validate format
+        if embeddings_with_labels.shape[1] != expected_columns:
+            # If llm_embedding_dim was not specified, try to auto-detect
+            if self.llm_embedding_dim is None:
+                detected_dim = embeddings_with_labels.shape[1] - 2
+                self.logger.warning(
+                    f"Expected {expected_columns} columns (128-dim OGB + node_id + class_label), "
+                    f"but got {embeddings_with_labels.shape[1]}. "
+                    f"Auto-detecting embedding dimension as {detected_dim}. "
+                    f"Consider using --llm-embedding-dim {detected_dim} for explicit specification."
+                )
+                self.embedding_dim = detected_dim
+            else:
+                raise ValueError(
+                    f"Expected {expected_columns} columns [{self.embedding_dim}-dim + node_id + class_label], "
+                    f"got {embeddings_with_labels.shape[1]}"
+                )
+
+        # Extract components using the determined embedding dimension
+        self.embeddings = embeddings_with_labels[:, :self.embedding_dim].astype(np.float32)
+        self.node_ids = embeddings_with_labels[:, self.embedding_dim].astype(np.int32)
+        self.labels = embeddings_with_labels[:, self.embedding_dim + 1].astype(np.int32)
 
         # Set sampled_indices for consistency
         self.sampled_indices = self.node_ids.tolist()
 
         self.logger.info(f"Extracted:")
         self.logger.info(f"  Embeddings shape: {self.embeddings.shape}")
+        self.logger.info(f"  Embedding dimension: {self.embedding_dim}")
         self.logger.info(f"  Node IDs shape: {self.node_ids.shape}")
         self.logger.info(f"  Labels shape: {self.labels.shape}")
         self.logger.info(f"  Unique classes: {len(np.unique(self.labels))}")
 
         # Load class mappings (needed for analysis)
         if not self.class_names:
-          self._load_class_mappings_standalone()
+            self._load_class_mappings_standalone()
 
         # Print class distribution
         self._print_class_distribution()
@@ -191,7 +214,10 @@ class OGBArxivKMeansAnalyzer:
         if self.stratified_embeddings:
             # Load pre-computed stratified embeddings
             self.load_stratified_embeddings()
-            self.logger.info("✅ Using pre-computed stratified embeddings")
+            if self.llm_embedding_dim:
+                self.logger.info(f"✅ Using pre-computed LLM embeddings ({self.embedding_dim}-dim)")
+            else:
+                self.logger.info("✅ Using pre-computed stratified embeddings")
         else:
             # Create new stratified sample from OGB dataset
             self.load_dataset()
@@ -204,21 +230,24 @@ class OGBArxivKMeansAnalyzer:
             self.load_dataset()
 
         total_nodes = self.data.x.shape[0]
-        num_sample_nodes = int(total_nodes * self.sample_ratio)
-
-        self.logger.info(
-            f"Creating stratified sample of {num_sample_nodes:,} nodes ({self.sample_ratio * 100:.1f}% of total)")
-
-        # Get all node indices and their labels (following your exact approach)
-        all_node_indices = np.arange(total_nodes)
         labels = self.data.y.squeeze().numpy()
 
-        # Check if we have enough nodes
-        if num_sample_nodes >= total_nodes:
-            self.logger.info(
-                f"Requested {num_sample_nodes} nodes, but dataset only has {total_nodes}. Using all nodes.")
+        # Handle full dataset case (sample_ratio >= 1.0)
+        if self.sample_ratio >= 1.0:
+            self.logger.info(f"Using full dataset with {total_nodes:,} nodes (100%)")
             self.sampled_indices = list(range(total_nodes))
+            self.embeddings = self.data.x.numpy()  # 128-dim pre-computed features
+            self.labels = labels  # Class labels
+            self.node_ids = np.arange(total_nodes)  # Node IDs
+            self.logger.info(f"✅ Loaded full dataset with {total_nodes:,} nodes")
         else:
+            num_sample_nodes = int(total_nodes * self.sample_ratio)
+            self.logger.info(
+                f"Creating stratified sample of {num_sample_nodes:,} nodes ({self.sample_ratio * 100:.1f}% of total)")
+
+            # Get all node indices and their labels (following your exact approach)
+            all_node_indices = np.arange(total_nodes)
+
             try:
                 # Use stratified sampling to maintain class distribution (your exact method)
                 sampled_indices, _, sampled_labels, _ = train_test_split(
@@ -240,10 +269,10 @@ class OGBArxivKMeansAnalyzer:
                     np.random.choice(total_nodes, size=num_sample_nodes, replace=False).tolist()
                 )
 
-        # Extract data for sampled nodes
-        self.embeddings = self.data.x[self.sampled_indices].numpy()  # 128-dim pre-computed features
-        self.labels = self.data.y[self.sampled_indices].squeeze().numpy()  # Class labels
-        self.node_ids = np.array(self.sampled_indices)  # Node IDs
+            # Extract data for sampled nodes
+            self.embeddings = self.data.x[self.sampled_indices].numpy()  # 128-dim pre-computed features
+            self.labels = self.data.y[self.sampled_indices].squeeze().numpy()  # Class labels
+            self.node_ids = np.array(self.sampled_indices)  # Node IDs
 
         self.logger.info(f"Extracted embeddings shape: {self.embeddings.shape}")
         self.logger.info(f"Labels shape: {self.labels.shape}")
@@ -284,6 +313,7 @@ class OGBArxivKMeansAnalyzer:
 
         self.logger.info(f"\nRunning K-means clustering with k={k}")
         self.logger.info(f"Input data shape: {self.embeddings.shape}")
+        self.logger.info(f"Embedding dimension: {self.embedding_dim}")
         self.logger.info(f"Number of classes in ground truth: {len(np.unique(self.labels))}")
 
         start_time = time.time()
@@ -317,7 +347,8 @@ class OGBArxivKMeansAnalyzer:
             'cluster_analysis': cluster_analysis,
             'ground_truth_labels': self.labels,
             'node_ids': self.node_ids,
-            'embeddings': self.embeddings
+            'embeddings': self.embeddings,
+            'embedding_dim': self.embedding_dim
         }
 
         self._print_results_summary(results)
@@ -328,23 +359,13 @@ class OGBArxivKMeansAnalyzer:
         """Calculate clustering evaluation metrics."""
         self.logger.info("Calculating evaluation metrics...")
 
-        # Internal metrics (don't use ground truth)
-        silhouette = silhouette_score(self.embeddings, cluster_labels)
-        inertia = KMeans(n_clusters=k, random_state=self.random_state).fit(self.embeddings).inertia_
-
         # External metrics (compare with ground truth class labels)
         ari = adjusted_rand_score(self.labels, cluster_labels)
         nmi = normalized_mutual_info_score(self.labels, cluster_labels)
-        homogeneity = homogeneity_score(self.labels, cluster_labels)
-        completeness = completeness_score(self.labels, cluster_labels)
 
         metrics = {
-            'silhouette_score': silhouette,
-            'inertia': inertia,
             'adjusted_rand_index': ari,
-            'normalized_mutual_info': nmi,
-            'homogeneity': homogeneity,
-            'completeness': completeness
+            'normalized_mutual_info': nmi
         }
 
         return metrics
@@ -406,16 +427,13 @@ class OGBArxivKMeansAnalyzer:
         # Basic info
         self.logger.info(f"Number of clusters (k): {results['k']}")
         self.logger.info(f"Number of papers: {len(results['cluster_labels'])}")
+        self.logger.info(f"Embedding dimension: {results['embedding_dim']}")
         self.logger.info(f"Clustering time: {results['clustering_time']:.2f} seconds")
 
         # Evaluation metrics
         self.logger.info(f"\nEVALUATION METRICS:")
-        self.logger.info(f"  Silhouette Score: {metrics['silhouette_score']:.4f}")
-        self.logger.info(f"  Inertia: {metrics['inertia']:.2f}")
         self.logger.info(f"  Adjusted Rand Index (ARI): {metrics['adjusted_rand_index']:.4f}")
         self.logger.info(f"  Normalized Mutual Info (NMI): {metrics['normalized_mutual_info']:.4f}")
-        self.logger.info(f"  Homogeneity: {metrics['homogeneity']:.4f}")
-        self.logger.info(f"  Completeness: {metrics['completeness']:.4f}")
 
         # Cluster composition summary
         self.logger.info(f"\nCLUSTER COMPOSITION ANALYSIS:")
@@ -438,7 +456,7 @@ class OGBArxivKMeansAnalyzer:
     def save_embeddings_for_eigen_analysis(self, output_file: str = "embeddings_with_labels.npy"):
         """
         Save embeddings with node IDs and class labels for eigen gap analysis.
-        Format: [128-dim embeddings, node_id, class_label]
+        Format: [embedding_dims, node_id, class_label]
         """
         if self.embeddings is None:
             self.prepare_data()
@@ -449,12 +467,12 @@ class OGBArxivKMeansAnalyzer:
             os.makedirs(output_dir, exist_ok=True)
 
         # Combine embeddings with node IDs and class labels
-        # Shape: [n_samples, 128 + 1 + 1] = [n_samples, 130]
+        # Shape: [n_samples, embedding_dim + 1 + 1]
         node_ids_column = self.node_ids.reshape(-1, 1).astype(np.float32)
         class_labels_column = self.labels.reshape(-1, 1).astype(np.float32)
 
         embeddings_with_labels = np.hstack([
-            self.embeddings.astype(np.float32),  # 128 dimensions
+            self.embeddings.astype(np.float32),  # embedding_dim dimensions
             node_ids_column,  # 1 dimension (node_id)
             class_labels_column  # 1 dimension (class_label)
         ])
@@ -465,7 +483,7 @@ class OGBArxivKMeansAnalyzer:
         self.logger.info(f"\nSaved embeddings for eigen analysis:")
         self.logger.info(f"  File: {output_file}")
         self.logger.info(f"  Shape: {embeddings_with_labels.shape}")
-        self.logger.info(f"  Format: [128-dim embeddings, node_id, class_label]")
+        self.logger.info(f"  Format: [{self.embedding_dim}-dim embeddings, node_id, class_label]")
         self.logger.info(f"  Data type: {embeddings_with_labels.dtype}")
 
         return output_file
@@ -492,6 +510,7 @@ class OGBArxivKMeansAnalyzer:
         metrics_df = pd.DataFrame([results['metrics']])
         metrics_df['k'] = k
         metrics_df['sample_size'] = len(results['cluster_labels'])
+        metrics_df['embedding_dim'] = results['embedding_dim']
         metrics_df['clustering_time'] = results['clustering_time']
 
         metrics_file = os.path.join(output_dir, f"clustering_metrics_k{k}.csv")
@@ -567,13 +586,18 @@ class OGBArxivKMeansAnalyzer:
 
 def main():
     """Main function with command line interface."""
-    parser = argparse.ArgumentParser(description="K-means clustering on OGB-Arxiv pre-computed embeddings")
+    parser = argparse.ArgumentParser(
+        description="K-means clustering on OGB-Arxiv pre-computed embeddings or custom LLM embeddings")
     parser.add_argument("--k", type=int, required=True, help="Number of clusters for K-means")
     parser.add_argument("--stratified-embeddings", type=str, default=None,
                         help="Path to pre-computed stratified embeddings file (.npy). "
-                             "Format: [128-dim embeddings, node_id, class_label]")
+                             "Format: [embedding_dims, node_id, class_label]")
+    parser.add_argument("--llm-embedding-dim", type=int, default=None,
+                        help="Dimension of LLM embeddings (e.g., 3072, 4096). "
+                             "If not specified, assumes 128-dim OGB embeddings. "
+                             "Will auto-detect if not provided and file format differs from OGB.")
     parser.add_argument("--sample-ratio", type=float, default=0.1,
-                        help="Fraction of dataset to use (default: 0.1 for 10%) - ignored if --stratified-embeddings is provided")
+                        help="Fraction of dataset to use (default: 0.1 for 10%%). Use 1.0 for full dataset.")
     parser.add_argument("--random-state", type=int, default=42,
                         help="Random seed for reproducibility")
     parser.add_argument("--output-dir", type=str, default="results",
@@ -585,12 +609,12 @@ def main():
 
     args = parser.parse_args()
 
-    # Initialize analyzer with safe attribute access
-    # Note: argparse converts --stratified-embeddings to stratified_embeddings (with underscores)
+    # Initialize analyzer
     analyzer = OGBArxivKMeansAnalyzer(
         sample_ratio=args.sample_ratio,
         random_state=args.random_state,
-        stratified_embeddings=getattr(args, 'stratified_embeddings', None)
+        stratified_embeddings=getattr(args, 'stratified_embeddings', None),
+        llm_embedding_dim=getattr(args, 'llm_embedding_dim', None)
     )
 
     # Prepare data (either load stratified embeddings or create new sample)
@@ -610,9 +634,13 @@ def main():
     print("K-MEANS PIPELINE COMPLETED SUCCESSFULLY!")
     print("=" * 70)
     print(f"K-means with k={args.k}")
-    print(f"Sample size: {len(results['cluster_labels']):,} papers ({args.sample_ratio * 100:.1f}% of total)")
-    print(f"Silhouette Score: {results['metrics']['silhouette_score']:.4f}")
-    print(f"Adjusted Rand Index: {results['metrics']['adjusted_rand_index']:.4f}")
+    print(f"Embedding dimension: {analyzer.embedding_dim}")
+    if args.sample_ratio >= 1.0:
+        print(f"Sample size: {len(results['cluster_labels']):,} papers (full dataset)")
+    else:
+        print(f"Sample size: {len(results['cluster_labels']):,} papers ({args.sample_ratio * 100:.1f}% of total)")
+    print(f"Adjusted Rand Index (ARI): {results['metrics']['adjusted_rand_index']:.4f}")
+    print(f"Normalized Mutual Info (NMI): {results['metrics']['normalized_mutual_info']:.4f}")
     print(f"Results saved to: {args.output_dir}")
     print(f"Embeddings for eigen analysis: {embeddings_file}")
     print("=" * 70)

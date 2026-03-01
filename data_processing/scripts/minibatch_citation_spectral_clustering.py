@@ -271,30 +271,70 @@ class CitationVectorizer:
 
         return vector
 
-    def compute_citation_similarity(self,
-                                    remaining_nodes: List[int],
-                                    stratified_nodes: List[int]) -> np.ndarray:
+    def compute_citation_similarity_batched(self,
+                                            remaining_nodes: List[int],
+                                            stratified_nodes: List[int],
+                                            batch_size: int = 1000) -> np.ndarray:
         """
-        Compute cosine similarity between remaining and stratified nodes based on citations.
+        Compute cosine similarity in batches to avoid memory issues.
 
         Args:
             remaining_nodes: List of remaining node IDs
             stratified_nodes: List of stratified node IDs
+            batch_size: Number of remaining nodes to process at once (default: 1000)
 
         Returns:
             Similarity matrix (n_remaining x n_stratified)
         """
-        logging.info(f"Computing citation similarity for {len(remaining_nodes)} remaining nodes...")
-        log_memory_usage("Before citation similarity")
+        logging.info(f"Computing citation similarity for {len(remaining_nodes)} remaining nodes "
+                     f"in batches of {batch_size}...")
+        log_memory_usage("Before citation similarity (batched)")
 
-        # Build citation vectors
-        remaining_vectors = np.array([self.get_citation_vector(node) for node in remaining_nodes])
+        n_remaining = len(remaining_nodes)
+        n_stratified = len(stratified_nodes)
+
+        # Pre-compute stratified vectors ONCE (only ~17k nodes typically)
+        logging.info(f"Pre-computing citation vectors for {n_stratified} stratified nodes...")
         stratified_vectors = np.array([self.get_citation_vector(node) for node in stratified_nodes])
+        log_memory_usage("After pre-computing stratified vectors")
 
-        # Compute cosine similarity
-        similarity_matrix = cosine_similarity(remaining_vectors, stratified_vectors)
+        # Initialize output matrix (use float32 to save memory)
+        similarity_matrix = np.zeros((n_remaining, n_stratified), dtype=np.float32)
 
-        log_memory_usage("After citation similarity")
+        # Process remaining nodes in batches
+        n_batches = (n_remaining + batch_size - 1) // batch_size
+        logging.info(f"Processing {n_batches} batches...")
+
+        for batch_idx in range(n_batches):
+            start_idx = batch_idx * batch_size
+            end_idx = min((batch_idx + 1) * batch_size, n_remaining)
+            batch_nodes = remaining_nodes[start_idx:end_idx]
+
+            if (batch_idx + 1) % 10 == 0 or batch_idx == 0:
+                logging.info(f"  Processing batch {batch_idx + 1}/{n_batches} "
+                             f"(nodes {start_idx}-{end_idx})...")
+
+            # Compute vectors for this batch only
+            batch_vectors = np.array([self.get_citation_vector(node) for node in batch_nodes])
+
+            # Compute similarity for this batch
+            batch_similarity = cosine_similarity(batch_vectors, stratified_vectors)
+
+            # Store in main matrix
+            similarity_matrix[start_idx:end_idx] = batch_similarity.astype(np.float32)
+
+            # Clean up batch (important!)
+            del batch_vectors, batch_similarity
+            gc.collect()
+
+            if (batch_idx + 1) % 20 == 0:
+                log_memory_usage(f"After batch {batch_idx + 1}/{n_batches}")
+
+        # Clean up
+        del stratified_vectors
+        gc.collect()
+
+        log_memory_usage("After citation similarity (batched)")
         logging.info("Citation similarity computation completed")
 
         return similarity_matrix
@@ -492,7 +532,8 @@ class MiniBatchCitationSpectralClusteringPipeline:
                  stratified_ratio: float = 0.1,
                  include_neighbors: bool = False,
                  output_dir: str = "results/citation_minibatch_spectral_clustering",
-                 random_state: int = 42):
+                 random_state: int = 42,
+                 batch_size: int = 10000):
         """
         Initialize mini-batch citation clustering pipeline.
 
@@ -515,6 +556,7 @@ class MiniBatchCitationSpectralClusteringPipeline:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.random_state = random_state
+        self.batch_size = batch_size
 
         # Data
         self.nodes_df = None
@@ -612,8 +654,9 @@ class MiniBatchCitationSpectralClusteringPipeline:
 
         # Step 7: Compute citation similarity between remaining and stratified nodes
         remaining_node_ids = self.remaining_df['node_id'].tolist()
-        similarity_matrix = self.citation_vectorizer.compute_citation_similarity(
-            remaining_node_ids, stratified_node_ids
+        similarity_matrix = self.citation_vectorizer.compute_citation_similarity_batched(
+            remaining_node_ids, stratified_node_ids,
+            batch_size=self.batch_size  # Adjust based on available memory
         )
 
         # Step 8: Project remaining nodes to spectral space
@@ -1058,6 +1101,13 @@ def main():
         type=int,
         default=42,
         help="Random state for reproducibility (default: 42)"
+    )
+
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=1000,
+        help="Batch size for citation similarity computation (default: 1000)"
     )
 
     args = parser.parse_args()
