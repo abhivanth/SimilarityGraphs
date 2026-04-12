@@ -379,7 +379,7 @@ class OGBArxivLoader:
 # Usage example
 if __name__ == "__main__":
     # Create output directory if it doesn't exist
-    output_dir = "../data/processed"
+    output_dir = "../../data/processed"
     os.makedirs(output_dir, exist_ok=True)
 
     # Initialize loader with stratified sampling
